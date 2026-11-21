@@ -521,34 +521,8 @@ export class AuthController {
     this.activeMicField = field;
     btnEl?.classList.add('is-recording');
     this.scene3d?.setState('listening');
+    this.scene3d?.setMicVolume(0.32);
     this.announce(t('voice.listening'));
-
-    // Live AnalyserNode for 3D mic volume pulse (audio strictly in memory, discarded on stop!)
-    try {
-      if (navigator.mediaDevices?.getUserMedia) {
-        this.micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        this.micCtx = new AudioCtx();
-        const src = this.micCtx.createMediaStreamSource(this.micStream);
-        const analyser = this.micCtx.createAnalyser();
-        analyser.fftSize = 64;
-        src.connect(analyser);
-        const bins = new Uint8Array(analyser.frequencyBinCount);
-        const pollVol = () => {
-          if (!this.activeMicField) return;
-          analyser.getByteFrequencyData(bins);
-          let sum = 0;
-          for (let i = 0; i < bins.length; i += 1) sum += bins[i];
-          this.scene3d?.setMicVolume(sum / (bins.length * 180));
-          this.volumeRaf = window.requestAnimationFrame(pollVol);
-        };
-        this.volumeRaf = window.requestAnimationFrame(pollVol);
-      }
-    } catch {
-      this.setError(t('auth.errors.micDenied'));
-      this.stopFieldRecording();
-      return;
-    }
 
     // Hard 15-second max cap per security specification
     clearTimeout(this.recordTimer);
@@ -558,24 +532,40 @@ export class AuthController {
     const langMeta = SUPPORTED_LANGUAGES.find((l) => l.code === this.speakLang) || SUPPORTED_LANGUAGES[0];
 
     if (!SpeechRec) {
-      // Try /api/stt endpoint gracefully; on fallback notify clearly that typing works
       this.setInfo(t('lang.voiceUnsupported'));
+      this.stopFieldRecording();
       return;
     }
 
+    // Start SpeechRecognition synchronously without a competing getUserMedia lock
     let capturedText = '';
     try {
       const rec = new SpeechRec();
       rec.lang = langMeta.sttLang;
-      rec.interimResults = false;
-      rec.maxAlternatives = 1;
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.maxAlternatives = 3;
+      rec.onsoundstart = () => this.scene3d?.setMicVolume(0.6);
+      rec.onspeechstart = () => this.scene3d?.setMicVolume(0.88);
+      rec.onspeechend = () => this.scene3d?.setMicVolume(0.25);
       rec.onresult = (ev) => {
-        capturedText = ev.results?.[0]?.[0]?.transcript || '';
+        let txt = '';
+        for (let i = 0; i < ev.results.length; i += 1) {
+          txt += (txt ? ' ' : '') + (ev.results[i]?.[0]?.transcript || '');
+        }
+        if (txt.trim()) {
+          capturedText = txt.trim();
+          this.scene3d?.setMicVolume(0.95);
+        }
       };
       rec.onerror = (ev) => {
-        if (ev.error === 'not-allowed') this.setError(t('auth.errors.micDenied'));
-        else if (ev.error === 'network') this.setError(t('auth.errors.networkFail'));
-        else if (ev.error === 'no-speech') this.setError(t('auth.errors.emptyAudio'));
+        if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+          this.setError(t('auth.errors.micDenied'));
+        } else if (ev.error === 'network') {
+          this.setError(t('auth.errors.networkFail'));
+        } else if (ev.error === 'no-speech') {
+          this.setError(t('auth.errors.emptyAudio'));
+        }
       };
       rec.onend = async () => {
         const finishedField = this.activeMicField || field;

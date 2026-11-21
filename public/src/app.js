@@ -7,8 +7,10 @@ import {
   syncStateToSupabase,
 } from '../db.js';
 import { addDaysIso, toIsoDay } from '../pnl.js';
+import { MIN_PRESS_MS, POST_RELEASE_TAIL_MS } from './audio-utils.js';
 import { AudioEngine } from './audio.js';
 import { AuthController } from './auth.js';
+import { VoiceDebugLog } from './debug-log.js';
 import {
   formatCurrencyInr,
   getSavedLanguage,
@@ -21,6 +23,7 @@ import {
   buildDailySummaryReply,
   buildEntriesReply,
   parseUtterance,
+  pickBestTranscriptAlternative,
   selectEntryToCorrect,
   toLocalIsoDate,
 } from './parser.js';
@@ -33,7 +36,7 @@ import {
   saveEncryptedState,
   wipeEncryptedVault,
 } from './vault.js';
-import { VoiceEngine } from './voice.js';
+import { resolveSpeechLocale, VoiceEngine } from './voice.js';
 
 const AI_GREETING = 'Hello, I am an AI assistant for your credit book.';
 
@@ -76,13 +79,20 @@ class VoiceKhataApp {
     this.activeView = 'book';
     this.activeFilter = 'all';
     this.searchQuery = '';
+    this.customerFilter = 'all';
+    this.customerSearchQuery = '';
+    this.sideFavOnly = false;
+    this.lastRawTranscript = '';
     this.highlightedCustomer = null;
     this.pendingDisambiguation = null;
+    this.pendingConfirmation = null;
     this.newlyAddedIds = new Set();
     this.justCorrectedId = null;
     this.spacebarHeld = false;
+    this.spacebarPressTs = 0;
     this.toastTimer = null;
 
+    this.debugLog = new VoiceDebugLog();
     this.audio = new AudioEngine();
     this.signalBg = null;
     this.reports = new ReportsController(this);
@@ -94,9 +104,25 @@ class VoiceKhataApp {
         this.updateListeningUI(listening);
         this.signalBg?.setAudioEnergy(listening ? 0.85 : 0);
       },
-      onPartialTranscript: (text) => this.setTranscript(text, false),
-      onFinalTranscript: (text) => this.handleUtterance(text),
-      onError: (msg) => this.showToast(msg),
+      onStatusChange: (status, detail) => {
+        if (this.el.voiceStateText && detail) {
+          this.el.voiceStateText.textContent = detail;
+        }
+      },
+      onVolumeChange: ({ level, lowVolume }) => {
+        this.updateVolumeMeter(level, lowVolume);
+      },
+      onPartialTranscript: (text, info) => {
+        this.lastRawTranscript = text;
+        const suffix = info?.isFinalSegment ? '' : ' …';
+        this.setTranscript(`${text}${suffix}`, false);
+      },
+      onFinalTranscript: (text, meta) => this.handleUtterance(text, meta),
+      onNotice: (msg) => this.showToast(msg),
+      onError: (msg) => {
+        this.showToast(msg);
+        this.setReply('Voice Notice', msg);
+      },
     });
   }
 
@@ -146,6 +172,9 @@ class VoiceKhataApp {
 
     this.audio.setNoiseFilter(this.state.settings.noiseFilter);
     this.voice.handsFree = Boolean(this.state.settings.handsFree);
+    const savedVoiceLang = this.state.settings.voiceLang || resolveSpeechLocale(savedLang);
+    this.voice.setLanguage(savedVoiceLang);
+    if (this.el.voiceLangSelect) this.el.voiceLangSelect.value = savedVoiceLang;
     this.syncToggleButtons();
     this.syncAccountHeader();
 
@@ -187,17 +216,35 @@ class VoiceKhataApp {
       muteToggleBtn: $('muteToggleBtn'),
       muteIcon: $('muteIcon'),
       mainWaveCanvas: $('mainWaveCanvas'),
+      voiceVolumeFill: $('voiceVolumeFill'),
+      lowVolumeWarning: $('lowVolumeWarning'),
       voiceConsoleCard: $('voiceConsoleCard'),
       voiceStateText: $('voiceStateText'),
+      voiceLangSelect: $('voiceLangSelect'),
       noiseFilterBtn: $('noiseFilterBtn'),
       handsFreeBtn: $('handsFreeBtn'),
       mobileHandsFreeBtn: $('mobileHandsFreeBtn'),
       liveTranscriptText: $('liveTranscriptText'),
+      editLastTranscriptBtn: $('editLastTranscriptBtn'),
       replyTag: $('replyTag'),
       replyText: $('replyText'),
       disambiguationCard: $('disambiguationCard'),
       disambiguationPrompt: $('disambiguationPrompt'),
       disambiguationChoices: $('disambiguationChoices'),
+      confirmEntryCard: $('confirmEntryCard'),
+      confirmCardTitle: $('confirmCardTitle'),
+      confirmConfidenceBadge: $('confirmConfidenceBadge'),
+      confirmWarningBox: $('confirmWarningBox'),
+      confirmEntriesList: $('confirmEntriesList'),
+      confirmCustomerDatalist: $('confirmCustomerDatalist'),
+      confirmSaveBtn: $('confirmSaveBtn'),
+      confirmEditBtn: $('confirmEditBtn'),
+      confirmReadBackBtn: $('confirmReadBackBtn'),
+      confirmCancelBtn: $('confirmCancelBtn'),
+      voiceDebugDrawer: $('voiceDebugDrawer'),
+      voiceDebugCount: $('voiceDebugCount'),
+      voiceDebugList: $('voiceDebugList'),
+      voiceDebugClearBtn: $('voiceDebugClearBtn'),
       holdTalkBtn: $('holdTalkBtn'),
       holdTalkLabel: $('holdTalkLabel'),
       mobileHoldTalkBtn: $('mobileHoldTalkBtn'),
@@ -208,8 +255,10 @@ class VoiceKhataApp {
       ledgerSearchInput: $('ledgerSearchInput'),
       ledgerFeedList: $('ledgerFeedList'),
       todayTotalQueryBtn: $('todayTotalQueryBtn'),
+      customerSearchInput: $('customerSearchInput'),
       customersDetailList: $('customersDetailList'),
       sideBalancesList: $('sideBalancesList'),
+      sideFavFilterBtn: $('sideFavFilterBtn'),
       viewAllCustomersBtn: $('viewAllCustomersBtn'),
       navEntryCount: $('navEntryCount'),
       navCustomerCount: $('navCustomerCount'),
@@ -239,8 +288,29 @@ class VoiceKhataApp {
 
   bindEvents() {
     this.el.headerLangSelect?.addEventListener('change', async (e) => {
-      await loadLanguage(e.target.value);
+      const nextUiLang = e.target.value;
+      await loadLanguage(nextUiLang);
+      const mappedSpeech = resolveSpeechLocale(nextUiLang);
+      this.voice.setLanguage(mappedSpeech);
+      this.state.settings.voiceLang = mappedSpeech;
+      if (this.el.voiceLangSelect) this.el.voiceLangSelect.value = mappedSpeech;
+      this.persistState();
       this.showToast(`Language: ${e.target.options[e.target.selectedIndex].text}`);
+    });
+
+    this.el.voiceLangSelect?.addEventListener('change', (e) => {
+      const nextVoiceLang = e.target.value;
+      this.voice.setLanguage(nextVoiceLang);
+      this.state.settings.voiceLang = nextVoiceLang;
+      this.persistState();
+      this.showToast(`Voice recognition set to ${e.target.options[e.target.selectedIndex].text}`);
+    });
+
+    this.el.editLastTranscriptBtn?.addEventListener('click', () => {
+      if (!this.lastRawTranscript || !this.el.simVoiceInput) return;
+      this.el.simVoiceInput.value = this.lastRawTranscript;
+      this.el.simVoiceInput.focus();
+      this.el.simVoiceInput.select();
     });
 
     const openAuth = () => this.auth.open('login');
@@ -283,8 +353,25 @@ class VoiceKhataApp {
       this.el.simVoiceInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
 
+    this.el.confirmSaveBtn?.addEventListener('click', () => this.confirmPendingEntries());
+    this.el.confirmEditBtn?.addEventListener('click', () => this.toggleConfirmationEdit());
+    this.el.confirmReadBackBtn?.addEventListener('click', () => this.readBackPendingConfirmation());
+    this.el.confirmCancelBtn?.addEventListener('click', () => this.cancelPendingConfirmation());
+
+    if (this.debugLog.enabled && this.el.voiceDebugDrawer) {
+      this.el.voiceDebugDrawer.hidden = false;
+      this.el.voiceDebugClearBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.debugLog.clear();
+        this.renderDebugLog();
+      });
+      this.renderDebugLog();
+    }
+
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        this.cancelPendingConfirmation();
         this.closeWipeModal();
         this.reports.closeKhataModal();
         this.reports.closeSaleModal();
@@ -296,6 +383,7 @@ class VoiceKhataApp {
         if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON') return;
         e.preventDefault();
         this.spacebarHeld = true;
+        this.spacebarPressTs = performance.now();
         this.voice.startListening();
       }
     });
@@ -304,7 +392,12 @@ class VoiceKhataApp {
       if (e.code === 'Space' && this.spacebarHeld) {
         e.preventDefault();
         this.spacebarHeld = false;
-        this.voice.stopListening();
+        const heldMs = performance.now() - this.spacebarPressTs;
+        if (heldMs < MIN_PRESS_MS) {
+          this.voice.discardListening('Press was too short — hold Spacebar while speaking.');
+        } else {
+          this.voice.stopListening({ graceMs: POST_RELEASE_TAIL_MS });
+        }
       }
     });
 
@@ -335,6 +428,28 @@ class VoiceKhataApp {
       });
     });
 
+    this.el.customerSearchInput?.addEventListener('input', (e) => {
+      this.customerSearchQuery = e.target.value.trim().toLowerCase();
+      this.renderCustomerBalances();
+    });
+
+    document.querySelectorAll('[data-customer-filter-tab]').forEach((pill) => {
+      pill.addEventListener('click', () => {
+        this.customerFilter = pill.dataset.customerFilterTab;
+        document
+          .querySelectorAll('[data-customer-filter-tab]')
+          .forEach((p) => p.classList.toggle('is-active', p === pill));
+        this.renderCustomerBalances();
+      });
+    });
+
+    this.el.sideFavFilterBtn?.addEventListener('click', () => {
+      this.sideFavOnly = !this.sideFavOnly;
+      this.el.sideFavFilterBtn.classList.toggle('is-active', this.sideFavOnly);
+      this.el.sideFavFilterBtn.setAttribute('aria-pressed', String(this.sideFavOnly));
+      this.renderCustomerBalances();
+    });
+
     this.el.viewAllCustomersBtn?.addEventListener('click', () => this.switchView('customers'));
 
     this.el.openWipeModalBtn?.addEventListener('click', () => this.openWipeModal());
@@ -347,26 +462,50 @@ class VoiceKhataApp {
 
   bindMicButton(btn) {
     if (!btn) return;
+    let pressStartTs = 0;
+    let startedOnThisPress = false;
+
     btn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
-      if (this.state.settings.handsFree) {
-        if (this.voice.listening) this.voice.stopListening();
-        else this.voice.startListening();
+      pressStartTs = performance.now();
+
+      // In Hands-Free mode, tapping while active finishes capture cleanly
+      if (this.voice.listening) {
+        startedOnThisPress = false;
+        this.voice.stopListening({ graceMs: POST_RELEASE_TAIL_MS });
         return;
       }
-      this.voice.startListening();
+
+      startedOnThisPress = true;
+      this.voice.startListening({ tapMode: Boolean(this.state.settings.handsFree) });
     });
 
     const release = () => {
-      if (!this.state.settings.handsFree && this.voice.listening) {
-        this.voice.stopListening();
+      if (!startedOnThisPress) return;
+      startedOnThisPress = false;
+      if (this.state.settings.handsFree || !this.voice.listening) return;
+
+      const heldMs = performance.now() - pressStartTs;
+      // Ignore accidental short presses (< 400ms); otherwise record 400ms post-release tail
+      if (heldMs < MIN_PRESS_MS) {
+        this.voice.discardListening('Press was too short — hold the mic button while speaking.');
+      } else {
+        this.voice.stopListening({ graceMs: POST_RELEASE_TAIL_MS });
       }
     };
+
     btn.addEventListener('pointerup', release);
     btn.addEventListener('pointercancel', release);
-    btn.addEventListener('pointerleave', (e) => {
-      if (e.buttons === 1) release();
-    });
+  }
+
+  updateVolumeMeter(level = 0, lowVolume = false) {
+    if (this.el.voiceVolumeFill) {
+      const clamped = Math.max(0, Math.min(1, Number(level) || 0));
+      this.el.voiceVolumeFill.style.transform = `scaleX(${clamped.toFixed(3)})`;
+    }
+    if (this.el.lowVolumeWarning) {
+      this.el.lowVolumeWarning.hidden = !lowVolume;
+    }
   }
 
   syncAccountHeader() {
@@ -443,6 +582,25 @@ class VoiceKhataApp {
     this.el.holdTalkBtn?.classList.toggle('is-active', listening);
     this.el.mobileHoldTalkBtn?.classList.toggle('is-active', listening);
 
+    if (!listening) {
+      this.updateVolumeMeter(0, false);
+    }
+
+    if (this.el.holdTalkLabel) {
+      this.el.holdTalkLabel.textContent = listening
+        ? 'Listening… Release to Finish'
+        : this.state.settings.handsFree
+        ? t('voice.tapToSpeak')
+        : 'Hold to Talk';
+    }
+    if (this.el.mobileHoldLabel) {
+      this.el.mobileHoldLabel.textContent = listening
+        ? 'Listening… Release to Finish'
+        : this.state.settings.handsFree
+        ? t('voice.tapToSpeak')
+        : 'Hold to Talk';
+    }
+
     if (this.el.voiceStateText) {
       this.el.voiceStateText.textContent = listening ? t('voice.listening') : t('voice.ready');
     }
@@ -452,6 +610,9 @@ class VoiceKhataApp {
     if (!this.el.liveTranscriptText) return;
     this.el.liveTranscriptText.textContent = text;
     this.el.liveTranscriptText.classList.toggle('is-placeholder', isPlaceholder);
+    if (this.el.editLastTranscriptBtn) {
+      this.el.editLastTranscriptBtn.hidden = Boolean(isPlaceholder || !this.lastRawTranscript);
+    }
   }
 
   setReply(tag, text) {
@@ -464,8 +625,23 @@ class VoiceKhataApp {
       (c) => c.name.toLowerCase() === name.toLowerCase()
     );
     if (!existing) {
-      this.state.customers.push({ name, optInReminder: false });
+      this.state.customers.push({ name, optInReminder: false, isFavorite: false });
     }
+  }
+
+  isFavoriteCustomer(name) {
+    const key = String(name || '').trim().toLowerCase();
+    return this.state.customers.some((c) => c.name.toLowerCase() === key && Boolean(c.isFavorite));
+  }
+
+  async toggleFavoriteCustomer(name) {
+    this.ensureCustomerExists(name);
+    const rec = this.state.customers.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (!rec) return;
+    rec.isFavorite = !rec.isFavorite;
+    await this.persistState();
+    this.renderAll();
+    this.showToast(rec.isFavorite ? `Added ${rec.name} to Favorites` : `Removed ${rec.name} from Favorites`);
   }
 
   async addManualDebitEntry({ customerName, amount, dateIso, dueDate, note }) {
@@ -509,6 +685,7 @@ class VoiceKhataApp {
         net: 0,
         count: 0,
         optInReminder: Boolean(c.optInReminder),
+        isFavorite: Boolean(c.isFavorite),
       });
     }
 
@@ -522,6 +699,7 @@ class VoiceKhataApp {
           net: 0,
           count: 0,
           optInReminder: false,
+          isFavorite: false,
         });
       }
       const rec = map.get(key);
@@ -531,7 +709,10 @@ class VoiceKhataApp {
       rec.count += 1;
     }
 
-    return Array.from(map.values()).sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.isFavorite !== b.isFavorite) return a.isFavorite ? -1 : 1;
+      return Math.abs(b.net) - Math.abs(a.net);
+    });
   }
 
   computeTotals(onlyToday = false) {
@@ -548,27 +729,52 @@ class VoiceKhataApp {
     return { credit, paid, net: credit - paid };
   }
 
-  async handleUtterance(rawText) {
+  async handleUtterance(rawText, meta = {}) {
     const text = String(rawText || '').trim();
     if (!text) return;
 
-    this.setTranscript(`"${text}"`, false);
-
-    const parsed = parseUtterance(text, {
+    const parseContext = {
       customers: this.state.customers,
       entries: this.state.entries,
       pendingDisambiguation: this.pendingDisambiguation,
       referenceDate: new Date(),
+      sttConfidence: meta.confidence ?? 0.95,
+    };
+
+    let chosenTranscript = text;
+    let parsed;
+    if (Array.isArray(meta.alternatives) && meta.alternatives.length > 1) {
+      const best = pickBestTranscriptAlternative(meta.alternatives, parseContext);
+      chosenTranscript = best.transcript || text;
+      parsed = best.parsed;
+    } else {
+      parsed = parseUtterance(text, parseContext);
+    }
+
+    this.debugLog.add({
+      transcript: chosenTranscript,
+      normalized: parsed.raw,
+      language: meta.lang || this.voice.speechLang,
+      engine: meta.source || 'typed',
+      parsed,
+      confidence: parsed.confidence ?? meta.confidence ?? 0.95,
+      rmsPeak: meta.rmsPeak ?? null,
     });
+    this.renderDebugLog();
+
+    this.lastRawTranscript = chosenTranscript;
+    this.setTranscript(`"${chosenTranscript}"`, false);
 
     let replyText = parsed.reply || '';
     let replyTag = 'Voice Confirmation';
 
     if (parsed.intent === 'disambiguation_required') {
+      this.pendingConfirmation = null;
       this.pendingDisambiguation = parsed;
       replyTag = 'Confirm Customer';
       replyText = parsed.reply;
       this.renderDisambiguationCard();
+      this.renderConfirmationCard();
     } else if (parsed.intent === 'disambiguation_cancel') {
       this.pendingDisambiguation = null;
       this.renderDisambiguationCard();
@@ -583,10 +789,21 @@ class VoiceKhataApp {
         const resolvedEntries = (pending.pendingEntries || []).map((item) => ({
           ...item,
           customerName: selected,
+          uncertainMatch: false,
+          confidence: Math.max(0.9, item.confidence || 0.9),
+          lowConfidence: false,
+          warnings: (item.warnings || []).filter((w) => !/Matched/i.test(w)),
         }));
-        await this.commitParsedEntries(resolvedEntries);
-        replyTag = 'Saved';
-        replyText = buildEntriesReply(resolvedEntries);
+        // Always show confirmation card before saving — never save silently
+        this.openConfirmationCard(resolvedEntries, {
+          rawTranscript: chosenTranscript,
+          confidence: Math.min(...resolvedEntries.map((e) => e.confidence)),
+          lowConfidence: resolvedEntries.some((e) => e.lowConfidence),
+          warnings: Array.from(new Set(resolvedEntries.flatMap((e) => e.warnings || []))),
+          meta,
+        });
+        replyTag = 'Confirm Entry';
+        replyText = buildEntriesReply(resolvedEntries, { pendingConfirm: true });
       } else if (pending.forIntent === 'balance_query') {
         replyTag = 'Customer Balance';
         replyText = this.resolveBalanceQuery(selected);
@@ -594,9 +811,16 @@ class VoiceKhataApp {
     } else if (parsed.intent === 'ledger_entries') {
       this.pendingDisambiguation = null;
       this.renderDisambiguationCard();
-      await this.commitParsedEntries(parsed.entries);
-      replyTag = `Saved (${parsed.entries.length} ${parsed.entries.length === 1 ? 'entry' : 'entries'})`;
-      replyText = parsed.reply;
+      // Always show confirmation card (customer, action, amount) with Confirm, Edit, Cancel — never save silently
+      this.openConfirmationCard(parsed.entries, {
+        rawTranscript: chosenTranscript,
+        confidence: parsed.confidence ?? 0.9,
+        lowConfidence: Boolean(parsed.lowConfidence),
+        warnings: parsed.warnings || [],
+        meta,
+      });
+      replyTag = parsed.lowConfidence ? 'Please Verify Entry' : 'Confirm Entry';
+      replyText = buildEntriesReply(parsed.entries, { pendingConfirm: true });
     } else if (parsed.intent === 'correction') {
       const target = selectEntryToCorrect(this.state.entries, parsed, this.state.lastBatchIds);
       if (!target) {
@@ -688,6 +912,7 @@ class VoiceKhataApp {
       settings: { ...this.state.settings },
     };
     this.pendingDisambiguation = null;
+    this.pendingConfirmation = null;
     this.highlightedCustomer = null;
     this.renderAll();
     this.setTranscript('No entries yet. Tap the mic and speak.', true);
@@ -759,9 +984,273 @@ class VoiceKhataApp {
     this.renderLedgerFeed();
     this.renderCustomerBalances();
     this.renderDisambiguationCard();
+    this.renderConfirmationCard();
     if (this.activeView === 'reports') {
       this.reports.render();
     }
+  }
+
+  openConfirmationCard(entries, { rawTranscript, confidence, lowConfidence, warnings, meta } = {}) {
+    this.pendingConfirmation = {
+      entries: (entries || []).map((e) => ({
+        ...e,
+        action: e.action || (e.type === 'paid' ? 'PAYMENT' : 'CREDIT'),
+      })),
+      rawTranscript: rawTranscript || '',
+      confidence: Number(confidence ?? 0.9),
+      lowConfidence: Boolean(lowConfidence),
+      warnings: Array.isArray(warnings) ? warnings : [],
+      editing: false,
+      meta: meta || {},
+    };
+    this.renderConfirmationCard();
+  }
+
+  toggleConfirmationEdit() {
+    if (!this.pendingConfirmation) return;
+    this.pendingConfirmation.editing = !this.pendingConfirmation.editing;
+    this.renderConfirmationCard();
+    if (this.pendingConfirmation.editing) {
+      const firstInput = this.el.confirmEntriesList?.querySelector('input[data-edit-field="customerName"]');
+      firstInput?.focus();
+    }
+  }
+
+  cancelPendingConfirmation() {
+    if (!this.pendingConfirmation) return;
+    this.pendingConfirmation = null;
+    this.renderConfirmationCard();
+    this.setReply('Cancelled', 'Entry discarded. Nothing was saved.');
+    this.showToast('Entry cancelled');
+  }
+
+  async readBackPendingConfirmation() {
+    if (!this.pendingConfirmation) return;
+    const summary = buildEntriesReply(this.pendingConfirmation.entries, { pendingConfirm: true });
+    await this.voice.speak(summary, { muted: false });
+  }
+
+  async confirmPendingEntries() {
+    if (!this.pendingConfirmation) return;
+    const entries = this.pendingConfirmation.entries;
+    for (const item of entries) {
+      const cleanName = String(item.customerName || '').trim();
+      const numAmt = Number(item.amount);
+      if (!cleanName) {
+        this.showToast('Please enter a customer name before saving.');
+        if (!this.pendingConfirmation.editing) this.toggleConfirmationEdit();
+        return;
+      }
+      if (!Number.isFinite(numAmt) || numAmt <= 0) {
+        this.showToast('Please enter a valid positive amount.');
+        if (!this.pendingConfirmation.editing) this.toggleConfirmationEdit();
+        return;
+      }
+      item.customerName = cleanName;
+      item.amount = Math.round(numAmt * 100) / 100;
+      item.type = item.action === 'PAYMENT' ? 'paid' : 'credit';
+      item.signedAmount = item.type === 'credit' ? item.amount : -item.amount;
+    }
+
+    const toCommit = entries.slice();
+    this.pendingConfirmation = null;
+    await this.commitParsedEntries(toCommit);
+    const savedReply = buildEntriesReply(toCommit, { pendingConfirm: false });
+    this.setReply(`Saved (${toCommit.length} ${toCommit.length === 1 ? 'entry' : 'entries'})`, savedReply);
+    this.renderAll();
+    this.showToast(savedReply);
+    await this.voice.speak(savedReply, { muted: this.state.settings.muted });
+  }
+
+  renderConfirmationCard() {
+    const card = this.el.confirmEntryCard;
+    if (!card) return;
+
+    const pending = this.pendingConfirmation;
+    if (!pending || !pending.entries || pending.entries.length === 0) {
+      card.hidden = true;
+      card.classList.remove('is-low-confidence');
+      return;
+    }
+
+    card.hidden = false;
+    card.classList.toggle('is-low-confidence', pending.lowConfidence);
+
+    const pct = Math.round((pending.confidence || 0) * 100);
+    if (this.el.confirmCardTitle) {
+      this.el.confirmCardTitle.textContent =
+        pending.entries.length > 1
+          ? `Confirm ${pending.entries.length} Ledger Entries`
+          : 'Confirm Ledger Entry';
+    }
+    if (this.el.confirmConfidenceBadge) {
+      this.el.confirmConfidenceBadge.textContent = pending.lowConfidence
+        ? `Low confidence · ${pct}%`
+        : `${pct}% confidence`;
+    }
+    if (this.el.confirmEditBtn) {
+      this.el.confirmEditBtn.textContent = pending.editing ? 'Done Editing' : 'Edit';
+    }
+
+    // Populate customer datalist for quick name edits
+    if (this.el.confirmCustomerDatalist) {
+      const names = Array.from(new Set(this.state.customers.map((c) => c.name)));
+      this.el.confirmCustomerDatalist.innerHTML = names
+        .map((n) => `<option value="${escapeHtml(n)}"></option>`)
+        .join('');
+    }
+
+    // Render highlighted warning banner for low-confidence or uncertain fuzzy matches
+    if (this.el.confirmWarningBox) {
+      const warnings = pending.warnings || [];
+      const fuzzyEntries = pending.entries
+        .map((e, idx) => ({ e, idx }))
+        .filter(({ e }) => e.uncertainMatch && e.spokenName && e.spokenName.toLowerCase() !== e.customerName.toLowerCase());
+
+      if (pending.lowConfidence || warnings.length > 0 || fuzzyEntries.length > 0) {
+        const msgLines =
+          warnings.length > 0
+            ? warnings.map((w) => `<div>⚠ ${escapeHtml(w)}</div>`).join('')
+            : '<div>⚠ Low confidence entry — please review customer, action, and amount before saving.</div>';
+        const chipsHtml = fuzzyEntries
+          .map(
+            ({ e, idx }) =>
+              `<button type="button" class="confirm-suggest-chip" data-use-spoken-idx="${idx}">Use &ldquo;${escapeHtml(
+                e.spokenName
+              )}&rdquo; instead</button>`
+          )
+          .join('');
+        this.el.confirmWarningBox.innerHTML = `${msgLines}${chipsHtml}`;
+        this.el.confirmWarningBox.hidden = false;
+        this.el.confirmWarningBox.querySelectorAll('[data-use-spoken-idx]').forEach((chip) => {
+          chip.addEventListener('click', () => {
+            const i = Number(chip.dataset.useSpokenIdx);
+            const target = this.pendingConfirmation?.entries?.[i];
+            if (!target) return;
+            target.customerName = target.spokenName;
+            target.uncertainMatch = false;
+            this.pendingConfirmation.warnings = (this.pendingConfirmation.warnings || []).filter(
+              (w) => !w.includes(target.spokenName)
+            );
+            this.renderConfirmationCard();
+          });
+        });
+      } else {
+        this.el.confirmWarningBox.hidden = true;
+        this.el.confirmWarningBox.innerHTML = '';
+      }
+    }
+
+    // Render each parsed entry (display view or inline Edit form)
+    if (this.el.confirmEntriesList) {
+      this.el.confirmEntriesList.innerHTML = pending.entries
+        .map((entry, idx) => {
+          const isCredit = entry.action !== 'PAYMENT' && entry.type !== 'paid';
+          if (pending.editing) {
+            return `
+              <div class="confirm-entry-row" data-confirm-idx="${idx}">
+                <div class="confirm-edit-grid">
+                  <div class="confirm-edit-field">
+                    <label for="confirmName-${idx}">Customer</label>
+                    <input
+                      id="confirmName-${idx}"
+                      type="text"
+                      list="confirmCustomerDatalist"
+                      value="${escapeHtml(entry.customerName)}"
+                      data-edit-idx="${idx}"
+                      data-edit-field="customerName"
+                    />
+                  </div>
+                  <div class="confirm-edit-field">
+                    <label for="confirmAction-${idx}">Action</label>
+                    <select id="confirmAction-${idx}" data-edit-idx="${idx}" data-edit-field="action">
+                      <option value="CREDIT" ${isCredit ? 'selected' : ''}>CREDIT (Udhaar / Dr)</option>
+                      <option value="PAYMENT" ${!isCredit ? 'selected' : ''}>PAYMENT (Jama / Cr)</option>
+                    </select>
+                  </div>
+                  <div class="confirm-edit-field">
+                    <label for="confirmAmount-${idx}">Amount (₹)</label>
+                    <input
+                      id="confirmAmount-${idx}"
+                      type="number"
+                      min="1"
+                      step="1"
+                      value="${escapeHtml(String(entry.amount))}"
+                      data-edit-idx="${idx}"
+                      data-edit-field="amount"
+                    />
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+
+          return `
+            <div class="confirm-entry-row" data-confirm-idx="${idx}">
+              <div class="confirm-entry-main">
+                <span class="confirm-entry-customer">${escapeHtml(entry.customerName)}</span>
+                <span class="confirm-entry-meta">${escapeHtml(entry.dateLabel)} &middot; ${escapeHtml(entry.dateIso)}</span>
+              </div>
+              <div class="confirm-entry-right">
+                <span class="confirm-action-badge ${
+                  isCredit ? 'confirm-action-badge--credit' : 'confirm-action-badge--paid'
+                }">${isCredit ? 'CREDIT' : 'PAYMENT'}</span>
+                <span class="confirm-entry-amount tabular">${formatCurrencyInr(entry.amount)}</span>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      if (pending.editing) {
+        this.el.confirmEntriesList.querySelectorAll('[data-edit-idx]').forEach((control) => {
+          control.addEventListener('input', () => {
+            const idx = Number(control.dataset.editIdx);
+            const field = control.dataset.editField;
+            const target = this.pendingConfirmation?.entries?.[idx];
+            if (!target) return;
+            if (field === 'amount') {
+              target.amount = Number(control.value);
+            } else if (field === 'action') {
+              target.action = control.value === 'PAYMENT' ? 'PAYMENT' : 'CREDIT';
+              target.type = target.action === 'PAYMENT' ? 'paid' : 'credit';
+            } else if (field === 'customerName') {
+              target.customerName = control.value;
+            }
+          });
+        });
+      }
+    }
+  }
+
+  renderDebugLog() {
+    if (!this.debugLog.enabled || !this.el.voiceDebugDrawer) return;
+    const records = this.debugLog.getRecords();
+    if (this.el.voiceDebugCount) this.el.voiceDebugCount.textContent = String(records.length);
+    if (!this.el.voiceDebugList) return;
+    if (records.length === 0) {
+      this.el.voiceDebugList.innerHTML = '<div class="voice-debug-item">No voice events logged yet.</div>';
+      return;
+    }
+    this.el.voiceDebugList.innerHTML = records
+      .map(
+        (r) => `
+          <div class="voice-debug-item">
+            <strong>[${escapeHtml(r.language)} · ${escapeHtml(r.engine)}]</strong>
+            &ldquo;${escapeHtml(r.transcript)}&rdquo;
+            &rarr; <em>${escapeHtml(r.intent)}</em>
+            (conf: ${Math.round((r.confidence || 0) * 100)}%${r.lowConfidence ? ' LOW' : ''})
+            ${
+              r.entries.length > 0
+                ? `<br/>${escapeHtml(
+                    r.entries.map((e) => `${e.customerName} ${e.action} ₹${e.amount} (${Math.round((e.confidence || 0) * 100)}%)`).join(' | ')
+                  )}`
+                : ''
+            }
+          </div>
+        `
+      )
+      .join('');
   }
 
   renderKPIs() {
@@ -831,6 +1320,7 @@ class VoiceKhataApp {
     const filtered = [...this.state.entries]
       .reverse()
       .filter((e) => {
+        if (this.activeFilter === 'favorites' && !this.isFavoriteCustomer(e.customerName)) return false;
         if (this.activeFilter === 'credit' && e.type !== 'credit') return false;
         if (this.activeFilter === 'paid' && e.type !== 'paid') return false;
         if (this.activeFilter === 'today' && e.dateIso !== todayIso) return false;
@@ -889,6 +1379,7 @@ class VoiceKhataApp {
               <div class="ledger-row-info">
                 <div class="ledger-customer-name">
                   <span>${escapeHtml(entry.customerName)}</span>
+                  ${this.isFavoriteCustomer(entry.customerName) ? '<span class="ledger-fav-badge" title="Favorite customer" aria-label="Favorite customer">★</span>' : ''}
                   ${correctedBadge}
                 </div>
                 <div class="ledger-meta">
@@ -916,10 +1407,15 @@ class VoiceKhataApp {
     const balances = this.computeCustomerBalances();
 
     if (this.el.sideBalancesList) {
-      if (balances.length === 0) {
-        this.el.sideBalancesList.innerHTML = `<li class="balance-item"><span class="balance-item-sub">No customers yet. Speak your first entry.</span></li>`;
+      const sideList = this.sideFavOnly ? balances.filter((c) => c.isFavorite) : balances;
+      if (sideList.length === 0) {
+        this.el.sideBalancesList.innerHTML = `<li class="balance-item"><span class="balance-item-sub">${
+          this.sideFavOnly
+            ? 'No favorite customers yet. Tap ★ next to a customer to pin them.'
+            : 'No customers yet. Speak your first entry.'
+        }</span></li>`;
       } else {
-        this.el.sideBalancesList.innerHTML = balances
+        this.el.sideBalancesList.innerHTML = sideList
           .map((c) => {
             const highlighted =
               this.highlightedCustomer && c.name.toLowerCase() === this.highlightedCustomer.toLowerCase();
@@ -934,15 +1430,32 @@ class VoiceKhataApp {
 
             return `
               <li class="balance-item ${highlighted ? 'is-highlighted' : ''}" data-customer-filter="${escapeHtml(c.name)}">
-                <div>
-                  <div class="balance-item-name">${escapeHtml(c.name)}</div>
-                  <div class="balance-item-sub tabular">${c.count} ${c.count === 1 ? 'entry' : 'entries'}${c.optInReminder ? ' · Reminder opt-in' : ''}</div>
+                <div class="balance-item-main">
+                  <button
+                    type="button"
+                    class="fav-star-btn fav-star-btn--sm ${c.isFavorite ? 'is-fav' : ''}"
+                    data-fav-toggle="${escapeHtml(c.name)}"
+                    aria-pressed="${c.isFavorite ? 'true' : 'false'}"
+                    aria-label="${c.isFavorite ? `Remove ${escapeHtml(c.name)} from favorites` : `Add ${escapeHtml(c.name)} to favorites`}"
+                    title="${c.isFavorite ? 'Remove favorite' : 'Mark as favorite'}"
+                  >${c.isFavorite ? '★' : '☆'}</button>
+                  <div>
+                    <div class="balance-item-name">${escapeHtml(c.name)}</div>
+                    <div class="balance-item-sub tabular">${c.count} ${c.count === 1 ? 'entry' : 'entries'}${c.optInReminder ? ' · Reminder opt-in' : ''}</div>
+                  </div>
                 </div>
                 <span class="balance-pill ${pillClass} tabular">${pillLabel}</span>
               </li>
             `;
           })
           .join('');
+
+        this.el.sideBalancesList.querySelectorAll('[data-fav-toggle]').forEach((starBtn) => {
+          starBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleFavoriteCustomer(starBtn.dataset.favToggle);
+          });
+        });
 
         this.el.sideBalancesList.querySelectorAll('[data-customer-filter]').forEach((item) => {
           item.addEventListener('click', () => {
@@ -958,10 +1471,28 @@ class VoiceKhataApp {
     }
 
     if (this.el.customersDetailList) {
-      if (balances.length === 0) {
-        this.el.customersDetailList.innerHTML = `<div class="empty-state"><h3>No customers yet</h3><p>Tap the mic and speak a customer name and amount to create their khata automatically.</p></div>`;
+      const detailList = balances.filter((c) => {
+        if (this.customerFilter === 'favorites' && !c.isFavorite) return false;
+        if (this.customerFilter === 'owes' && !(c.net > 0)) return false;
+        if (this.customerFilter === 'settled' && c.net !== 0) return false;
+        if (this.customerFilter === 'advance' && !(c.net < 0)) return false;
+        if (this.customerSearchQuery && !c.name.toLowerCase().includes(this.customerSearchQuery)) {
+          return false;
+        }
+        return true;
+      });
+
+      if (detailList.length === 0) {
+        this.el.customersDetailList.innerHTML =
+          balances.length === 0
+            ? `<div class="empty-state"><h3>No customers yet</h3><p>Tap the mic and speak a customer name and amount to create their khata automatically.</p></div>`
+            : `<div class="empty-state"><h3>No matching customers</h3><p>${
+                this.customerFilter === 'favorites'
+                  ? 'Tap the ★ star next to any customer to add them to Favorites.'
+                  : 'Try another filter or clear your customer search.'
+              }</p></div>`;
       } else {
-        this.el.customersDetailList.innerHTML = balances
+        this.el.customersDetailList.innerHTML = detailList
           .map((c) => {
             const highlighted =
               this.highlightedCustomer && c.name.toLowerCase() === this.highlightedCustomer.toLowerCase();
@@ -976,9 +1507,19 @@ class VoiceKhataApp {
 
             return `
               <div class="customer-detail-row ${highlighted ? 'is-highlighted' : ''}">
-                <div>
-                  <div class="ledger-customer-name">${escapeHtml(c.name)}</div>
-                  <div class="ledger-meta tabular">Dr ${formatCurrencyInr(c.credit)} &middot; Cr ${formatCurrencyInr(c.paid)} &middot; ${c.count} ${c.count === 1 ? 'entry' : 'entries'}</div>
+                <div class="customer-detail-left">
+                  <button
+                    type="button"
+                    class="fav-star-btn ${c.isFavorite ? 'is-fav' : ''}"
+                    data-fav-toggle="${escapeHtml(c.name)}"
+                    aria-pressed="${c.isFavorite ? 'true' : 'false'}"
+                    aria-label="${c.isFavorite ? `Remove ${escapeHtml(c.name)} from favorites` : `Add ${escapeHtml(c.name)} to favorites`}"
+                    title="${c.isFavorite ? 'Remove favorite' : 'Mark as favorite'}"
+                  >${c.isFavorite ? '★' : '☆'}</button>
+                  <div>
+                    <div class="ledger-customer-name">${escapeHtml(c.name)}</div>
+                    <div class="ledger-meta tabular">Dr ${formatCurrencyInr(c.credit)} &middot; Cr ${formatCurrencyInr(c.paid)} &middot; ${c.count} ${c.count === 1 ? 'entry' : 'entries'}</div>
+                  </div>
                 </div>
                 <div class="customer-controls">
                   <span class="balance-pill ${pillClass} tabular">${pillLabel}</span>
@@ -993,6 +1534,12 @@ class VoiceKhataApp {
             `;
           })
           .join('');
+
+        this.el.customersDetailList.querySelectorAll('[data-fav-toggle]').forEach((starBtn) => {
+          starBtn.addEventListener('click', () => {
+            this.toggleFavoriteCustomer(starBtn.dataset.favToggle);
+          });
+        });
 
         this.el.customersDetailList.querySelectorAll('[data-optin-customer]').forEach((box) => {
           box.addEventListener('change', async () => {

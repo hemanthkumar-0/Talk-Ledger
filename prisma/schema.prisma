@@ -23,6 +23,7 @@ model VkCustomer {
   nameKey       String   @map("name_key")
   name          String
   optInReminder Boolean  @default(false) @map("opt_in_reminder")
+  isFavorite    Boolean  @default(false) @map("is_favorite")
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 

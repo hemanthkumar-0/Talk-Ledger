@@ -190,8 +190,8 @@ function sendManifest(req, res) {
     scope: '/',
     display: 'standalone',
     orientation: 'any',
-    background_color: isDark ? '#0B1120' : '#FAF8F5',
-    theme_color: isDark ? '#0B1120' : '#131D33',
+    background_color: isDark ? '#0B0F19' : '#0B0F19',
+    theme_color: '#0B0F19',
     categories: ['finance', 'business', 'productivity'],
     icons: [
       { src: '/icons/icon-192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },

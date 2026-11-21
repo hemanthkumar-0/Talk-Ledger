@@ -5,6 +5,28 @@ import WebSocket from 'ws';
  * Keeps all credentials strictly server-side and supports seamless fallback
  * when credentials are absent or upstream services are unreachable.
  */
+const SUPPORTED_STT_LANGS = new Set(['en-IN', 'hi-IN', 'kn-IN', 'ta-IN', 'ur-IN']);
+
+export function normalizeGnaniLanguage(lang, fallback = 'en-IN') {
+  const raw = String(lang || '').trim();
+  const shortMap = {
+    en: 'en-IN',
+    english: 'en-IN',
+    hi: 'hi-IN',
+    hindi: 'hi-IN',
+    kn: 'kn-IN',
+    kannada: 'kn-IN',
+    ta: 'ta-IN',
+    tamil: 'ta-IN',
+    ur: 'ur-IN',
+    urdu: 'ur-IN',
+  };
+  if (SUPPORTED_STT_LANGS.has(raw)) return raw;
+  const mapped = shortMap[raw.toLowerCase()];
+  if (mapped) return mapped;
+  return SUPPORTED_STT_LANGS.has(fallback) ? fallback : 'en-IN';
+}
+
 export function getGnaniConfig() {
   const apiKey = (process.env.GNANI_API_KEY || '').trim();
   const accessKey = (process.env.GNANI_ACCESS_KEY || '').trim();
@@ -68,7 +90,7 @@ export async function synthesizeWithTimbre(text, options = {}) {
       body: JSON.stringify({
         text,
         voice: options.voice || cfg.ttsVoice,
-        language: options.language || cfg.sttLang,
+        language: normalizeGnaniLanguage(options.language, cfg.sttLang),
         format: 'mp3',
         sample_rate: 16000,
       }),
@@ -167,37 +189,56 @@ export function attachPrismaRelay(clientWs) {
   let upstreamWs = null;
   let sessionStartedAt = Date.now();
   let chunkCount = 0;
+  let stopRequested = false;
 
   const openUpstream = (meta = {}) => {
+    if (upstreamWs) {
+      try {
+        upstreamWs.close();
+      } catch {
+        // ignore
+      }
+      upstreamWs = null;
+    }
+
     sessionStartedAt = Date.now();
     chunkCount = 0;
+    stopRequested = false;
+    const explicitLang = normalizeGnaniLanguage(meta.language, cfg.sttLang);
+    const sampleRate = Number(meta.sampleRate) === 16000 ? 16000 : 16000;
 
     const headers = {
       Authorization: `Bearer ${cfg.apiKey}`,
       'x-api-key': cfg.apiKey,
       'x-audio-format': 'pcm16',
-      'x-sample-rate': String(meta.sampleRate || 16000),
-      'x-language': meta.language || cfg.sttLang,
+      'x-sample-rate': String(sampleRate),
+      'x-language': explicitLang,
+      'x-lang-code': explicitLang,
     };
     if (cfg.accessKey) {
       headers['x-access-key'] = cfg.accessKey;
     }
 
+    let opened = false;
+
     try {
-      upstreamWs = new WebSocket(cfg.prismaWsUrl, { headers, handshakeTimeout: 5000 });
+      upstreamWs = new WebSocket(cfg.prismaWsUrl, { headers, handshakeTimeout: 2500 });
     } catch (err) {
       sendJson({
-        type: 'fallback',
-        mode: 'browser-fallback',
+        type: 'upstream_error',
+        code: 'connect_failed',
         reason: `Could not open Gnani Prisma relay: ${err.message}`,
       });
       return;
     }
 
     upstreamWs.on('open', () => {
+      opened = true;
       sendJson({
         type: 'upstream_ready',
         mode: 'gnani',
+        language: explicitLang,
+        sampleRate,
         proxyMs: Date.now() - sessionStartedAt,
       });
       upstreamWs.send(
@@ -205,9 +246,10 @@ export function attachPrismaRelay(clientWs) {
           event: 'start',
           config: {
             encoding: 'LINEAR16',
-            sampleRateHertz: meta.sampleRate || 16000,
+            sampleRateHertz: sampleRate,
             channels: 1,
-            languageCode: meta.language || cfg.sttLang,
+            languageCode: explicitLang,
+            language: explicitLang,
             interimResults: true,
           },
         })
@@ -228,7 +270,9 @@ export function attachPrismaRelay(clientWs) {
           sendJson({
             type: isFinal ? 'final' : 'partial',
             transcript,
-            confidence: parsed.confidence ?? 0.95,
+            language: explicitLang,
+            confidence: parsed.confidence ?? (isFinal ? 0.92 : 0.75),
+            alternatives: Array.isArray(parsed.alternatives) ? parsed.alternatives : undefined,
             sttMs: Date.now() - sessionStartedAt,
             chunks: chunkCount,
           });
@@ -240,14 +284,22 @@ export function attachPrismaRelay(clientWs) {
 
     upstreamWs.on('error', (err) => {
       sendJson({
-        type: 'fallback',
-        mode: 'browser-fallback',
+        type: 'upstream_error',
+        code: opened ? 'stream_error' : 'handshake_error',
         reason: `Gnani Prisma relay error: ${err.message}`,
       });
     });
 
-    upstreamWs.on('close', () => {
+    upstreamWs.on('close', (code, reasonBuf) => {
+      const reason = reasonBuf ? reasonBuf.toString() : '';
       upstreamWs = null;
+      if (!stopRequested) {
+        sendJson({
+          type: 'upstream_closed',
+          code,
+          reason: reason || 'Streaming connection closed unexpectedly',
+        });
+      }
     });
   };
 
@@ -271,6 +323,7 @@ export function attachPrismaRelay(clientWs) {
       if (msg.type === 'start') {
         openUpstream(msg);
       } else if (msg.type === 'stop') {
+        stopRequested = true;
         if (upstreamWs && upstreamWs.readyState === WebSocket.OPEN) {
           upstreamWs.send(JSON.stringify({ event: 'stop' }));
         }

@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Contact — Voice Khata</title>
   <meta name="description" content="Get in touch with the Voice Khata support team for help, feedback, or language requests." />
-  <meta name="theme-color" content="#FAF8F5" />
+  <meta name="theme-color" content="#0B0F19" />
   <script>
     (function () {
       try {
-        var mode = localStorage.getItem('talkledger-theme') || 'system';
+        var mode = localStorage.getItem('talkledger-theme') || 'dark';
         var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         var resolved = mode === 'dark' || mode === 'light' ? mode : (prefersDark ? 'dark' : 'light');
         document.documentElement.dataset.theme = resolved;
@@ -22,7 +22,7 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/tokens.css" />
   <link rel="stylesheet" href="/css/lather.css" />
   <link rel="stylesheet" href="/css/landing.css" />
@@ -32,10 +32,10 @@
     <div class="vk-container vk-header-inner">
       <a href="/" class="vk-brand" aria-label="Voice Khata Home">
         <span class="vk-brand-icon" aria-hidden="true">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E6A825" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="2" width="6" height="11" rx="3" fill="#E6A825" stroke="none"></rect>
-            <path d="M5 10v2a7 7 0 0 0 14 0v-2" stroke="#FAF8F5"></path>
-            <line x1="12" y1="19" x2="12" y2="22" stroke="#FAF8F5"></line>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C9A961" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3" fill="#C9A961" stroke="none"></rect>
+            <path d="M5 10v2a7 7 0 0 0 14 0v-2" stroke="#F5F5F0"></path>
+            <line x1="12" y1="19" x2="12" y2="22" stroke="#F5F5F0"></line>
           </svg>
         </span>
         <span class="vk-brand-name">Voice <span>Khata</span></span>

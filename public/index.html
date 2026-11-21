@@ -8,21 +8,21 @@
   <meta property="og:title" content="Voice Khata — Speak. Your khata updates itself." />
   <meta property="og:description" content="Fast, private, voice-first credit book for everyday businesses in India. Works in English, Hindi, Kannada, Tamil, and Urdu." />
   <meta property="og:type" content="website" />
-  <meta name="theme-color" content="#FAF8F5" />
+  <meta name="theme-color" content="#0B0F19" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
   <script>
     (function () {
       try {
-        var mode = localStorage.getItem('talkledger-theme') || 'system';
+        var mode = localStorage.getItem('talkledger-theme') || 'dark';
         var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         var resolved = mode === 'dark' || mode === 'light' ? mode : (prefersDark ? 'dark' : 'light');
         document.documentElement.dataset.theme = resolved;
         document.documentElement.dataset.themeMode = mode;
         document.documentElement.style.colorScheme = resolved;
         var meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute('content', resolved === 'dark' ? '#0B1120' : '#FAF8F5');
+        if (meta) meta.setAttribute('content', resolved === 'light' ? '#FAF8F5' : '#0B0F19');
         var lang = localStorage.getItem('talkledger-lang') || 'en';
         document.documentElement.lang = lang;
         document.documentElement.dir = lang === 'ur' ? 'rtl' : 'ltr';
@@ -35,34 +35,39 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="/css/tokens.css" />
   <link rel="stylesheet" href="/css/lather.css" />
   <link rel="stylesheet" href="/css/landing.css" />
 </head>
-<body>
+<body class="vk-landing-body">
+  <!-- Gold Scroll Progress Bar -->
+  <div class="vk-scroll-progress" id="scrollProgressBar" aria-hidden="true"></div>
+
+  <!-- Subtle Static Ambient Grid -->
   <canvas class="signal-ambient-canvas" id="signalAmbientCanvas" aria-hidden="true"></canvas>
 
-  <!-- 1. Sticky Navbar with Clean Blur -->
-  <header class="vk-header" role="banner">
+  <!-- 1. Sticky Transparent-to-Glass Navbar -->
+  <header class="vk-header" id="siteHeader" role="banner">
     <div class="vk-container vk-header-inner">
-      <a href="/" class="vk-brand" aria-label="Voice Khata Home">
+      <a href="#top" class="vk-brand" aria-label="Voice Khata Home">
         <span class="vk-brand-icon" aria-hidden="true">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E6A825" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="2" width="6" height="11" rx="3" fill="#E6A825" stroke="none"></rect>
-            <path d="M5 10v2a7 7 0 0 0 14 0v-2" stroke="#FAF8F5"></path>
-            <line x1="12" y1="19" x2="12" y2="22" stroke="#FAF8F5"></line>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C9A961" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3" fill="#C9A961" stroke="none"></rect>
+            <path d="M5 10v2a7 7 0 0 0 14 0v-2" stroke="#F5F5F0"></path>
+            <line x1="12" y1="19" x2="12" y2="22" stroke="#F5F5F0"></line>
           </svg>
         </span>
-        <span class="vk-brand-name">Voice <span>Khata</span></span>
+        <span class="vk-brand-name">Voice <span class="gold-text">Khata</span></span>
       </a>
 
-      <nav class="vk-nav" aria-label="Main navigation">
-        <a href="#features" data-i18n="nav.features">Features</a>
-        <a href="#how-it-works" data-i18n="nav.howItWorks">How it Works</a>
-        <a href="#security" data-i18n="nav.security">Security</a>
-        <a href="#faq" data-i18n="nav.faq">FAQ</a>
+      <nav class="vk-nav" id="primaryNav" aria-label="Main navigation">
+        <a href="#features" data-nav-section="features" data-i18n="nav.features">Features</a>
+        <a href="#how-it-works" data-nav-section="how-it-works" data-i18n="nav.howItWorks">How it Works</a>
+        <a href="#use-cases" data-nav-section="use-cases">Use Cases</a>
+        <a href="#security" data-nav-section="security" data-i18n="nav.security">Security</a>
+        <a href="#faq" data-nav-section="faq" data-i18n="nav.faq">FAQ</a>
       </nav>
 
       <div class="vk-header-actions">
@@ -76,50 +81,91 @@
         </select>
 
         <div class="theme-control-cluster" role="group" data-i18n-aria="theme.toggleAria" aria-label="Switch color theme">
-          <button type="button" class="lather-toggle-btn" id="latherThemeBtn" aria-pressed="false" data-i18n-aria="theme.toggleAria" title="Switch Light / Dark theme">
+          <button type="button" class="lather-toggle-btn" id="latherThemeBtn" aria-pressed="true" data-i18n-aria="theme.toggleAria" title="Switch Light / Dark theme">
             <span class="lather-bubble" aria-hidden="true"><span class="lather-eclipse"></span></span>
           </button>
           <div class="theme-mode-group" role="radiogroup" aria-label="Theme mode">
             <button type="button" role="radio" aria-checked="false" class="theme-mode-btn" data-theme-choice="light" data-i18n="theme.light">Light</button>
-            <button type="button" role="radio" aria-checked="false" class="theme-mode-btn" data-theme-choice="dark" data-i18n="theme.dark">Dark</button>
-            <button type="button" role="radio" aria-checked="true" class="theme-mode-btn is-active" data-theme-choice="system" data-i18n="theme.system">System</button>
+            <button type="button" role="radio" aria-checked="true" class="theme-mode-btn is-active" data-theme-choice="dark" data-i18n="theme.dark">Dark</button>
+            <button type="button" role="radio" aria-checked="false" class="theme-mode-btn" data-theme-choice="system" data-i18n="theme.system">System</button>
           </div>
         </div>
 
-        <a href="/app" class="vk-btn-primary" data-i18n="nav.getStarted">Get Started</a>
+        <a href="/app" class="vk-btn vk-btn-primary vk-btn-sm" data-i18n="nav.getStarted">Get Started</a>
       </div>
     </div>
   </header>
 
   <main>
-    <!-- 2. Hero -->
-    <section class="vk-hero" id="top">
+    <!-- 2. Hero — Deep Midnight Navy + Subtle Radial Gold Glow + 3D Aurora Shader -->
+    <section class="vk-hero vk-band-dark" id="top" data-anim-section>
+      <canvas class="vk-aurora-canvas" id="heroAuroraCanvas" aria-hidden="true"></canvas>
+      <div class="vk-hero-radial-glow" aria-hidden="true"></div>
+      <div class="vk-hero-grid-lines" aria-hidden="true"></div>
+
       <div class="vk-container vk-hero-grid">
-        <div>
-          <div class="vk-hero-eyebrow">
-            <span class="vk-hero-eyebrow-dot" aria-hidden="true"></span>
-            <span>Private voice bookkeeping for everyday businesses</span>
+        <div class="vk-hero-copy" id="heroCopy">
+          <div class="vk-eyebrow-pill hero-load-1">
+            <span class="vk-eyebrow-dot" aria-hidden="true"></span>
+            <span>Private voice bookkeeping for modern businesses</span>
           </div>
-          <h1 class="vk-hero-title">Speak. Your khata <span>updates itself.</span></h1>
-          <p class="vk-hero-lead">
-            Record customer credit, payments, daily dues, and expenses simply by speaking. Fast, accurate, encrypted on your device, and ready offline whenever your shop is busy.
+
+          <h1 class="vk-hero-title hero-load-2">
+            Speak. Your khata <span class="gold-text">updates itself.</span>
+          </h1>
+
+          <p class="vk-hero-lead hero-load-3">
+            Record customer credit, payments, daily dues, and profit simply by speaking. Engineered with deterministic accuracy, encrypted on your device, and ready offline whenever your counter is busy.
           </p>
-          <div class="vk-hero-ctas">
-            <a href="/app" class="vk-btn-primary vk-btn-lg">
+
+          <div class="vk-hero-ctas hero-load-4">
+            <a href="/app" class="vk-btn vk-btn-primary vk-btn-lg">
               <span data-i18n="nav.getStarted">Get Started</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
             </a>
-            <a href="#how-it-works" class="vk-btn-secondary vk-btn-lg">See How It Works</a>
+            <a href="#how-it-works" class="vk-btn vk-btn-secondary vk-btn-lg">See How It Works</a>
           </div>
-          <p class="vk-hero-note">Free to open in your browser. Installable on Android and iPhone with no signup required.</p>
+
+          <div class="vk-hero-trust-row hero-load-5" aria-label="Core assurances">
+            <span><i aria-hidden="true">✦</i> AES-GCM 256-bit Encrypted</span>
+            <span><i aria-hidden="true">✦</i> Offline PWA</span>
+            <span><i aria-hidden="true">✦</i> 5 Indian Languages</span>
+            <span><i aria-hidden="true">✦</i> No Signup Needed</span>
+          </div>
         </div>
 
-        <!-- Clean Phone Mockup Visual -->
-        <div class="vk-phone-stage" aria-hidden="true">
-          <div class="vk-phone-frame">
+        <!-- 3D Floating Gold-Rimmed Phone Mockup + Orbiting 3D Coins & Mic -->
+        <div class="vk-phone-stage hero-load-phone" id="heroVisual" aria-hidden="true">
+          <div class="vk-phone-aurora-rings">
+            <span class="vk-aurora-ring vk-aurora-ring--1"></span>
+            <span class="vk-aurora-ring vk-aurora-ring--2"></span>
+            <span class="vk-aurora-ring vk-aurora-ring--3"></span>
+          </div>
+
+          <!-- Orbiting 3D Metallic Gold Rupee Coin & Microphone Satellites -->
+          <div class="vk-orbit-badge vk-orbit-badge--coin" aria-hidden="true">
+            <span class="vk-coin-3d">₹</span>
+          </div>
+          <div class="vk-orbit-badge vk-orbit-badge--mic" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="22"></line>
+            </svg>
+          </div>
+          <div class="vk-orbit-badge vk-orbit-badge--shield" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <polyline points="9 12 11 14 15 10"></polyline>
+            </svg>
+            <span>256-bit</span>
+          </div>
+
+          <div class="vk-phone-frame" id="heroPhoneTilt">
+            <div class="vk-phone-sheen"></div>
             <div class="vk-phone-screen">
               <div class="vk-phone-notch"></div>
               <div class="vk-phone-topbar">
@@ -143,13 +189,13 @@
                     <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
                   </div>
                   <p class="vk-phone-quote">&ldquo;Ramesh, 340 on credit. He paid 150 yesterday.&rdquo;</p>
-                  <p class="vk-phone-reply">Saved: Ramesh ₹340 debit today, ₹150 paid yesterday.</p>
+                  <p class="vk-phone-reply">Saved · Ramesh ₹340 debit, ₹150 paid.</p>
                 </div>
 
                 <div class="vk-phone-entries">
                   <div class="vk-phone-entry">
                     <div>
-                      <strong>Ramesh</strong>
+                      <strong>Ramesh ★</strong>
                       <small>Today &middot; Credit sale</small>
                     </div>
                     <span class="vk-phone-amt-dr tabular">+ ₹340</span>
@@ -169,7 +215,7 @@
                     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
                   </svg>
-                  <span>Hold to Talk</span>
+                  <span>Tap or Hold to Talk</span>
                 </div>
               </div>
             </div>
@@ -178,171 +224,360 @@
       </div>
     </section>
 
-    <!-- 3. Trust Strip -->
-    <section class="vk-trust-strip" aria-label="Core guarantees">
-      <div class="vk-container vk-trust-grid">
-        <div class="vk-trust-item">
-          <span class="vk-trust-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-          </span>
-          <span>Works in Hindi, Kannada, Tamil, English</span>
+    <div class="vk-gold-rule" aria-hidden="true"></div>
+
+    <!-- 3. Trust Marquee + Animated Number Counters -->
+    <section class="vk-trust-band vk-band-secondary" aria-label="Languages, trust guarantees, and key metrics" data-anim-section>
+      <div class="vk-marquee" aria-label="Supported languages and guarantees">
+        <div class="vk-marquee-track">
+          <span class="vk-marquee-chip">English · EN-IN</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip">हिन्दी · Hindi</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip">ಕನ್ನಡ · Kannada</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip">தமிழ் · Tamil</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip">اردو · Urdu RTL</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip">AES-GCM 256-bit Device Vault</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip">Works Offline</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip">No Signup Required</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <!-- Seamless loop duplicate -->
+          <span class="vk-marquee-chip" aria-hidden="true">English · EN-IN</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip" aria-hidden="true">हिन्दी · Hindi</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip" aria-hidden="true">ಕನ್ನಡ · Kannada</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip" aria-hidden="true">தமிழ் · Tamil</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip" aria-hidden="true">اردو · Urdu RTL</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip" aria-hidden="true">AES-GCM 256-bit Device Vault</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip" aria-hidden="true">Works Offline</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
+          <span class="vk-marquee-chip" aria-hidden="true">No Signup Required</span>
+          <span class="vk-marquee-sep" aria-hidden="true">✦</span>
         </div>
-        <div class="vk-trust-item">
-          <span class="vk-trust-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          </span>
-          <span>Encrypted on your device</span>
-        </div>
-        <div class="vk-trust-item">
-          <span class="vk-trust-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
-          </span>
-          <span>Works offline</span>
-        </div>
-        <div class="vk-trust-item">
-          <span class="vk-trust-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-          </span>
-          <span>No signup needed</span>
+      </div>
+
+      <div class="vk-container">
+        <div class="vk-stats-grid" data-stagger-group>
+          <div class="vk-stat-tile reveal-up">
+            <strong class="vk-stat-num tabular gold-text" data-counter="10000" data-suffix="+">10,000+</strong>
+            <span>Local ledger entries capacity</span>
+          </div>
+          <div class="vk-stat-tile reveal-up">
+            <strong class="vk-stat-num tabular gold-text" data-counter="256" data-suffix="-bit">256-bit</strong>
+            <span>On-device AES-GCM encryption</span>
+          </div>
+          <div class="vk-stat-tile reveal-up">
+            <strong class="vk-stat-num tabular gold-text" data-counter="5" data-suffix=" langs">5 langs</strong>
+            <span>Hindi, Kannada, Tamil, Urdu &amp; English</span>
+          </div>
+          <div class="vk-stat-tile reveal-up">
+            <strong class="vk-stat-num tabular gold-text" data-counter="100" data-suffix="%">100%</strong>
+            <span>Offline-ready installable PWA</span>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- 4. Features Card Grid -->
-    <section class="vk-section" id="features">
-      <div class="vk-container">
-        <div class="vk-section-head reveal-on-scroll">
-          <span class="vk-section-eyebrow">Features</span>
-          <h2 class="vk-section-title">Everything your daily khata needs, hands-free.</h2>
-          <p class="vk-section-sub">Designed for busy counters where typing every rupee slows you down.</p>
-        </div>
+    <div class="vk-gold-rule" aria-hidden="true"></div>
 
-        <div class="vk-features-grid">
-          <article class="vk-card reveal-on-scroll">
-            <div class="vk-card-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+    <!-- 4. Features — 3×3 Equal-Height Glass Cards with 3D Animated Gold Icons + Spotlight Hover -->
+    <section class="vk-section vk-band-dark vk-section--orbs vk-section--deferred" id="features" data-anim-section>
+      <div class="vk-ambient-orbs" aria-hidden="true">
+        <span class="vk-blur-orb vk-blur-orb--gold"></span>
+        <span class="vk-blur-orb vk-blur-orb--navy"></span>
+      </div>
+
+      <div class="vk-container">
+        <header class="vk-section-head reveal-up">
+          <span class="vk-section-eyebrow">Features</span>
+          <h2 class="vk-section-title" data-split-heading>
+            Everything your daily khata needs, <span class="gold-text">hands-free.</span>
+          </h2>
+          <p class="vk-section-sub">Precision-built for busy counters where typing every rupee slows you down.</p>
+        </header>
+
+        <div class="vk-features-grid" data-stagger-group>
+          <!-- 1. 3D Microphone -->
+          <article class="vk-glass-card vk-feature-card reveal-card" data-spotlight>
+            <div class="vk-icon-3d" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+                <defs>
+                  <linearGradient id="gMic" x1="12" y1="6" x2="36" y2="42" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#E8D5A3"/><stop offset="0.55" stop-color="#C9A961"/><stop offset="1" stop-color="#A8883F"/>
+                  </linearGradient>
+                </defs>
+                <ellipse cx="24" cy="42" rx="11" ry="3" fill="#0B0F19" opacity="0.55"/>
+                <rect x="17" y="7" width="14" height="21" rx="7" fill="url(#gMic)"/>
+                <rect x="20" y="10" width="3" height="12" rx="1.5" fill="#F5F5F0" opacity="0.55"/>
+                <path d="M12 22c0 6.627 5.373 12 12 12s12-5.373 12-12" stroke="#E8D5A3" stroke-width="2.4" stroke-linecap="round"/>
+                <path d="M24 34v6M18 40h12" stroke="#C9A961" stroke-width="2.4" stroke-linecap="round"/>
+              </svg>
             </div>
-            <h3>Push-to-Talk Voice Entry</h3>
-            <p>Hold the microphone button, speak naturally, and release. Built-in shop noise filtering keeps speech clear at busy counters.</p>
+            <h3>Tap &amp; Push-to-Talk Voice</h3>
+            <p>Tap once to speak or hold the dedicated gold voice medallion. Multi-alternative speech capture keeps entries sharp at noisy counters.</p>
           </article>
 
-          <article class="vk-card reveal-on-scroll">
-            <div class="vk-card-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>
+          <!-- 2. 3D Ledger Book -->
+          <article class="vk-glass-card vk-feature-card reveal-card" data-spotlight>
+            <div class="vk-icon-3d" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+                <defs>
+                  <linearGradient id="gBook" x1="10" y1="8" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#E8D5A3"/><stop offset="0.55" stop-color="#C9A961"/><stop offset="1" stop-color="#A8883F"/>
+                  </linearGradient>
+                </defs>
+                <rect x="11" y="8" width="26" height="32" rx="5" fill="#151C2C" stroke="url(#gBook)" stroke-width="2"/>
+                <rect x="11" y="8" width="7" height="32" rx="3" fill="url(#gBook)"/>
+                <line x1="22" y1="17" x2="32" y2="17" stroke="#E8D5A3" stroke-width="2.2" stroke-linecap="round"/>
+                <line x1="22" y1="24" x2="30" y2="24" stroke="#C9A961" stroke-width="2" stroke-linecap="round" opacity="0.75"/>
+                <line x1="22" y1="31" x2="28" y2="31" stroke="#F5F5F0" stroke-width="1.8" stroke-linecap="round" opacity="0.45"/>
+              </svg>
             </div>
             <h3>Automatic Ledger Parsing</h3>
-            <p>Understands spoken amounts, credit sales, payments, relative dates like yesterday, and instant corrections without duplicating entries.</p>
+            <p>Deterministically extracts amounts, credit sales, payments, relative dates like yesterday, and in-place corrections with zero duplicates.</p>
           </article>
 
-          <article class="vk-card reveal-on-scroll">
-            <div class="vk-card-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+          <!-- 3. 3D Spoken Replies -->
+          <article class="vk-glass-card vk-feature-card reveal-card" data-spotlight>
+            <div class="vk-icon-3d" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+                <defs>
+                  <linearGradient id="gSpk" x1="8" y1="10" x2="38" y2="38" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#E8D5A3"/><stop offset="0.6" stop-color="#C9A961"/><stop offset="1" stop-color="#A8883F"/>
+                  </linearGradient>
+                </defs>
+                <path d="M10 19h7l9-8v26l-9-8h-7a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2z" fill="url(#gSpk)"/>
+                <path d="M31 17.5a8.5 8.5 0 0 1 0 13" stroke="#E8D5A3" stroke-width="2.3" stroke-linecap="round"/>
+                <path d="M35.5 13a14 14 0 0 1 0 22" stroke="#C9A961" stroke-width="2" stroke-linecap="round" opacity="0.65"/>
+              </svg>
             </div>
             <h3>Clear Spoken Replies</h3>
-            <p>Reads back every saved amount and customer balance in one clear sentence so you never have to squint at the screen.</p>
+            <p>Reads back every saved amount and customer balance in one crisp sentence so you verify totals without squinting at the screen.</p>
           </article>
 
-          <article class="vk-card reveal-on-scroll">
-            <div class="vk-card-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          <!-- 4. 3D Language Globe -->
+          <article class="vk-glass-card vk-feature-card reveal-card" data-spotlight>
+            <div class="vk-icon-3d" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+                <defs>
+                  <radialGradient id="gGlobe" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(19 16) rotate(48) scale(24)">
+                    <stop stop-color="#E8D5A3" stop-opacity="0.4"/><stop offset="1" stop-color="#151C2C"/>
+                  </radialGradient>
+                </defs>
+                <circle cx="24" cy="24" r="15" fill="url(#gGlobe)" stroke="#C9A961" stroke-width="2"/>
+                <ellipse cx="24" cy="24" rx="7" ry="15" stroke="#E8D5A3" stroke-width="1.7"/>
+                <line x1="9" y1="24" x2="39" y2="24" stroke="#C9A961" stroke-width="1.7"/>
+                <path d="M12 16h24M12 32h24" stroke="#C9A961" stroke-width="1.3" opacity="0.6"/>
+              </svg>
             </div>
             <h3>Multi-Language Support</h3>
-            <p>Use the interface and localized INR formatting in English, Hindi, Kannada, Tamil, and Urdu with right-to-left layout support.</p>
+            <p>Use the interface, voice recognition, and INR formatting in English, Hindi, Kannada, Tamil, and Urdu with complete RTL layout support.</p>
           </article>
 
-          <article class="vk-card reveal-on-scroll">
-            <div class="vk-card-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <!-- 5. 3D Shield / Vault Lock -->
+          <article class="vk-glass-card vk-feature-card reveal-card" data-spotlight>
+            <div class="vk-icon-3d" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+                <defs>
+                  <linearGradient id="gLock" x1="12" y1="8" x2="36" y2="40" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#E8D5A3"/><stop offset="0.55" stop-color="#C9A961"/><stop offset="1" stop-color="#A8883F"/>
+                  </linearGradient>
+                </defs>
+                <path d="M24 6l14 5v11c0 9.5-5.9 16.3-14 20-8.1-3.7-14-10.5-14-20V11l14-5z" fill="#151C2C" stroke="url(#gLock)" stroke-width="2.1"/>
+                <rect x="18" y="22" width="12" height="10" rx="2.5" fill="url(#gLock)"/>
+                <path d="M20.5 22v-3a3.5 3.5 0 0 1 7 0v3" stroke="#E8D5A3" stroke-width="2" stroke-linecap="round"/>
+              </svg>
             </div>
             <h3>Encrypted Local Storage</h3>
-            <p>Your books are locked on your device using modern browser encryption so customer records stay private to you.</p>
+            <p>Every balance is locked inside IndexedDB using a 256-bit AES-GCM non-extractable device key, with optional Supabase sync when signed in.</p>
           </article>
 
-          <article class="vk-card reveal-on-scroll">
-            <div class="vk-card-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <!-- 6. 3D Delete Bin -->
+          <article class="vk-glass-card vk-feature-card reveal-card" data-spotlight>
+            <div class="vk-icon-3d" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+                <defs>
+                  <linearGradient id="gBin" x1="12" y1="10" x2="36" y2="40" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#E8D5A3"/><stop offset="1" stop-color="#A8883F"/>
+                  </linearGradient>
+                </defs>
+                <path d="M12 15h24" stroke="#E8D5A3" stroke-width="2.4" stroke-linecap="round"/>
+                <path d="M19 15v-3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3" stroke="#C9A961" stroke-width="2"/>
+                <path d="M15 15l2 23a3 3 0 0 0 3 2.8h8a3 3 0 0 0 3-2.8l2-23" fill="#151C2C" stroke="url(#gBin)" stroke-width="2"/>
+                <line x1="21" y1="21" x2="21.5" y2="34" stroke="#C9A961" stroke-width="2" stroke-linecap="round"/>
+                <line x1="27" y1="21" x2="26.5" y2="34" stroke="#C9A961" stroke-width="2" stroke-linecap="round"/>
+              </svg>
             </div>
             <h3>One-Tap Data Delete</h3>
-            <p>Clear your entire local ledger and destroy the encryption key permanently whenever you want a fresh start.</p>
+            <p>Clear your entire local ledger and destroy the encryption key permanently in one tap whenever you want a clean slate.</p>
           </article>
 
-          <article class="vk-card reveal-on-scroll">
-            <div class="vk-card-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+          <!-- 7. 3D Offline Cloud / PWA -->
+          <article class="vk-glass-card vk-feature-card reveal-card" data-spotlight>
+            <div class="vk-icon-3d" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+                <defs>
+                  <linearGradient id="gCloud" x1="10" y1="12" x2="38" y2="36" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#E8D5A3"/><stop offset="1" stop-color="#A8883F"/>
+                  </linearGradient>
+                </defs>
+                <path d="M14 34h21a7 7 0 0 0 1.4-13.86A10 10 0 0 0 17.2 17.6 6.5 6.5 0 0 0 14 34z" fill="#151C2C" stroke="url(#gCloud)" stroke-width="2.1"/>
+                <path d="M24 20v9m0 0-3.5-3.5M24 29l3.5-3.5" stroke="#E8D5A3" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
             <h3>Installable Offline PWA</h3>
-            <p>Add Voice Khata to your home screen like a native app. Lightweight enough to stay snappy on everyday Android phones.</p>
+            <p>Add Voice Khata straight to your home screen on Android or iPhone. Lightweight architecture stays smooth even on entry-level phones.</p>
           </article>
 
-          <article class="vk-card reveal-on-scroll">
-            <div class="vk-card-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          <!-- 8. 3D Rupee Coin & P&L Reports -->
+          <article class="vk-glass-card vk-feature-card reveal-card" data-spotlight>
+            <div class="vk-icon-3d" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+                <defs>
+                  <linearGradient id="gCoin" x1="10" y1="8" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#E8D5A3"/><stop offset="0.5" stop-color="#C9A961"/><stop offset="1" stop-color="#A8883F"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="24" cy="24" r="15" fill="url(#gCoin)"/>
+                <circle cx="24" cy="24" r="11.5" stroke="#0B0F19" stroke-opacity="0.35" stroke-width="1.5"/>
+                <text x="24" y="30" text-anchor="middle" fill="#0B0F19" font-size="18" font-weight="700" font-family="Inter, sans-serif">₹</text>
+              </svg>
             </div>
             <h3>Dues, Profit &amp; Stock Reports</h3>
-            <p>See overdue balances, customer statements, daily profit and loss bars, and low-stock alerts in one clear view.</p>
+            <p>Track overdue balances, opening and closing statements, daily profit and loss charts, and low-stock alerts in one crisp dashboard.</p>
+          </article>
+
+          <!-- 9. 3D Starred Favorites & Filters -->
+          <article class="vk-glass-card vk-feature-card reveal-card" data-spotlight>
+            <div class="vk-icon-3d" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
+                <defs>
+                  <linearGradient id="gStar" x1="12" y1="8" x2="36" y2="40" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#E8D5A3"/><stop offset="0.55" stop-color="#C9A961"/><stop offset="1" stop-color="#A8883F"/>
+                  </linearGradient>
+                </defs>
+                <path d="M24 8l4.7 9.5 10.5 1.5-7.6 7.4 1.8 10.4L24 31.9l-9.4 4.9 1.8-10.4-7.6-7.4 10.5-1.5L24 8z" fill="url(#gStar)" stroke="#E8D5A3" stroke-width="1.4" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3>Favorite Customers &amp; Filters</h3>
+            <p>Star regular buyers to pin them at the top and filter your credit book or customer balances by Favorites, Owes, Settled, or Advance.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- 5. How it Works -->
-    <section class="vk-section vk-section--alt" id="how-it-works">
-      <div class="vk-container">
-        <div class="vk-section-head reveal-on-scroll">
-          <span class="vk-section-eyebrow">How it Works</span>
-          <h2 class="vk-section-title">From spoken words to balanced books in three seconds.</h2>
-          <p class="vk-section-sub">No menus to dig through and no spreadsheets to format.</p>
-        </div>
+    <div class="vk-gold-rule" aria-hidden="true"></div>
 
-        <div class="vk-steps-grid">
-          <div class="vk-step-card reveal-on-scroll">
-            <div class="vk-step-badge tabular">1</div>
-            <h3>Speak</h3>
-            <p>Hold the microphone button and say the customer name, amount, and whether it was credit or a payment received.</p>
+    <!-- 5. How it Works — Warm Ivory Alternating Band + Interactive 3-Step Timeline -->
+    <section class="vk-section vk-band-light vk-section--deferred" id="how-it-works" data-anim-section>
+      <div class="vk-container">
+        <header class="vk-section-head reveal-up">
+          <span class="vk-section-eyebrow">How it Works</span>
+          <h2 class="vk-section-title" data-split-heading>
+            From spoken words to <span class="gold-text-dark">balanced books</span> in seconds.
+          </h2>
+          <p class="vk-section-sub">Three effortless steps—zero menus to hunt through and zero spreadsheets to format.</p>
+        </header>
+
+        <div class="vk-how-stage" id="howItWorksStage">
+          <!-- Progressive Connecting Line Timeline -->
+          <div class="vk-timeline-wrap">
+            <div class="vk-timeline-line" aria-hidden="true">
+              <div class="vk-timeline-fill" id="timelineFill"></div>
+            </div>
+
+            <div class="vk-steps-grid" data-stagger-group>
+              <button type="button" class="vk-step-card is-active reveal-up" data-how-step="0" aria-pressed="true">
+                <div class="vk-step-badge tabular">01</div>
+                <h3>Speak</h3>
+                <p>Tap or hold the gold microphone medallion and speak naturally—customer name, rupee amount, and whether it was credit or paid.</p>
+              </button>
+
+              <button type="button" class="vk-step-card reveal-up" data-how-step="1" aria-pressed="false">
+                <div class="vk-step-badge tabular">02</div>
+                <h3>Understood</h3>
+                <p>Voice Khata deterministically extracts exact amounts, dates, and customer names locally—confirming if two buyers share a name.</p>
+              </button>
+
+              <button type="button" class="vk-step-card reveal-up" data-how-step="2" aria-pressed="false">
+                <div class="vk-step-badge tabular">03</div>
+                <h3>Saved</h3>
+                <p>The entry locks into your encrypted vault, daily totals update immediately, and a brief spoken reply lets you serve the next customer.</p>
+              </button>
+            </div>
           </div>
-          <div class="vk-step-card reveal-on-scroll">
-            <div class="vk-step-badge tabular">2</div>
-            <h3>Understood</h3>
-            <p>Voice Khata extracts exact amounts, dates, and customer names locally—asking you to confirm if two customers share a name.</p>
-          </div>
-          <div class="vk-step-card reveal-on-scroll">
-            <div class="vk-step-badge tabular">3</div>
-            <h3>Saved</h3>
-            <p>The entry is encrypted on your phone, totals update immediately, and a short spoken confirmation lets you move on to the next customer.</p>
+
+          <!-- Interactive Synced Phone Screen (updates as steps activate on scroll or click) -->
+          <div class="vk-how-preview reveal-up" aria-live="polite">
+            <div class="vk-how-phone">
+              <div class="vk-how-phone-bar">
+                <span class="vk-how-step-chip" id="howPreviewTag">Step 01 · Listening</span>
+                <span class="vk-how-dot-row" aria-hidden="true">
+                  <i class="is-active" data-how-dot="0"></i>
+                  <i data-how-dot="1"></i>
+                  <i data-how-dot="2"></i>
+                </span>
+              </div>
+              <div class="vk-how-phone-body" id="howPreviewBody">
+                <div class="vk-how-wave" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <strong id="howPreviewTitle">&ldquo;Ramesh, 560 credit today, he paid 250 yesterday.&rdquo;</strong>
+                <p id="howPreviewDesc">Capturing Indian-English &amp; Hinglish speech cleanly in real time.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 6. Use Cases -->
-    <section class="vk-section" id="use-cases">
-      <div class="vk-container">
-        <div class="vk-section-head reveal-on-scroll">
-          <span class="vk-section-eyebrow">Built for Everyday Work</span>
-          <h2 class="vk-section-title">Practical across shops, stalls, and homes.</h2>
-          <p class="vk-section-sub">Speak the way you naturally keep track of money.</p>
-        </div>
+    <div class="vk-gold-rule" aria-hidden="true"></div>
 
-        <div class="vk-usecases-grid">
-          <article class="vk-usecase-card reveal-on-scroll">
+    <!-- 6. Use Cases — Deep Navy 2×2 Glass Card Grid -->
+    <section class="vk-section vk-band-dark vk-section--deferred" id="use-cases">
+      <div class="vk-container">
+        <header class="vk-section-head reveal-up">
+          <span class="vk-section-eyebrow">Built for Everyday Work</span>
+          <h2 class="vk-section-title" data-split-heading>
+            Crafted for shops, stalls, and <span class="gold-text">modern homes.</span>
+          </h2>
+          <p class="vk-section-sub">Speak the exact way you already keep track of everyday money.</p>
+        </header>
+
+        <div class="vk-usecases-grid" data-stagger-group>
+          <article class="vk-glass-card vk-usecase-card reveal-card" data-spotlight>
+            <span class="vk-usecase-tag">Neighbourhood Retail</span>
             <h3>Kirana Shop Owners</h3>
             <p>Log regular neighbourhood credit and partial payments during morning rush without pausing to write in a paper register.</p>
             <div class="vk-usecase-quote">&ldquo;Ramesh, 340 on credit. He paid 150 yesterday.&rdquo;</div>
           </article>
 
-          <article class="vk-usecase-card reveal-on-scroll">
+          <article class="vk-glass-card vk-usecase-card reveal-card" data-spotlight>
+            <span class="vk-usecase-tag">On-the-Move Counters</span>
             <h3>Street &amp; Produce Vendors</h3>
-            <p>Keep clean records with one thumb while weighing produce or handling change at your stall.</p>
+            <p>Keep clean records with one thumb while weighing produce or handling change at your counter.</p>
             <div class="vk-usecase-quote">&ldquo;Sunita paid two fifty today.&rdquo;</div>
           </article>
 
-          <article class="vk-usecase-card reveal-on-scroll">
+          <article class="vk-glass-card vk-usecase-card reveal-card" data-spotlight>
+            <span class="vk-usecase-tag">B2B &amp; Supply</span>
             <h3>Small Wholesale Traders</h3>
             <p>Track larger credit invoices, monitor overdue ageing buckets, and share polite payment reminders when needed.</p>
             <div class="vk-usecase-quote">&ldquo;Vikram, two thousand five hundred on credit.&rdquo;</div>
           </article>
 
-          <article class="vk-usecase-card reveal-on-scroll">
+          <article class="vk-glass-card vk-usecase-card reveal-card" data-spotlight>
+            <span class="vk-usecase-tag">Personal &amp; Family</span>
             <h3>Home Expense Tracking</h3>
             <p>Record milk, newspaper, laundry, or household staff payments in seconds and check monthly totals anytime.</p>
             <div class="vk-usecase-quote">&ldquo;Milk vendor, 450 paid today.&rdquo;</div>
@@ -351,175 +586,245 @@
       </div>
     </section>
 
-    <!-- 7. Security & Privacy -->
-    <section class="vk-section vk-section--alt" id="security">
+    <div class="vk-gold-rule" aria-hidden="true"></div>
+
+    <!-- 7. Security & Privacy — Warm Ivory Split Layout (3D Shield Visual + Staggered Checklist) -->
+    <section class="vk-section vk-band-light vk-section--deferred" id="security" data-anim-section>
       <div class="vk-container">
-        <div class="vk-section-head reveal-on-scroll">
+        <header class="vk-section-head reveal-up">
           <span class="vk-section-eyebrow">Security &amp; Privacy</span>
-          <h2 class="vk-section-title">Your books belong strictly to you.</h2>
-          <p class="vk-section-sub">Designed from the ground up to protect shop finances and customer privacy.</p>
-        </div>
+          <h2 class="vk-section-title" data-split-heading>
+            Your books belong <span class="gold-text-dark">strictly to you.</span>
+          </h2>
+          <p class="vk-section-sub">Engineered from first principles to safeguard shop finances and customer privacy.</p>
+        </header>
 
-        <div class="vk-security-grid">
-          <article class="vk-card reveal-on-scroll">
-            <div class="vk-card-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <div class="vk-security-split">
+          <!-- Left: Animated 3D Gold Shield & Vault Visual -->
+          <div class="vk-shield-stage reveal-shield" id="securityShieldStage" aria-hidden="true">
+            <div class="vk-shield-card">
+              <span class="vk-shield-ring vk-shield-ring--outer"></span>
+              <span class="vk-shield-ring vk-shield-ring--inner"></span>
+              <div class="vk-shield-emblem">
+                <svg width="88" height="88" viewBox="0 0 88 88" fill="none">
+                  <defs>
+                    <linearGradient id="gShieldLg" x1="16" y1="10" x2="72" y2="78" gradientUnits="userSpaceOnUse">
+                      <stop stop-color="#E8D5A3"/><stop offset="0.5" stop-color="#C9A961"/><stop offset="1" stop-color="#A8883F"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M44 8l28 10v22c0 18.6-11.8 32-28 39-16.2-7-28-20.4-28-39V18L44 8z" fill="#0B0F19" stroke="url(#gShieldLg)" stroke-width="3"/>
+                  <path d="M44 16l21 7.5v16.5c0 13.8-8.7 23.8-21 29.2-12.3-5.4-21-15.4-21-29.2V23.5L44 16z" fill="#151C2C" stroke="#C9A961" stroke-opacity="0.35" stroke-width="1.5"/>
+                  <rect x="33" y="40" width="22" height="17" rx="4" fill="url(#gShieldLg)"/>
+                  <path d="M37 40v-5a7 7 0 0 1 14 0v5" stroke="#E8D5A3" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="44" cy="48.5" r="2.2" fill="#0B0F19"/>
+                </svg>
+              </div>
+              <div class="vk-shield-caption">
+                <strong class="gold-text">AES-GCM 256-bit Vault</strong>
+                <span>Zero-trust device key · Row-Level Security</span>
+              </div>
             </div>
-            <h3>Encrypted Ledger (AES-GCM)</h3>
-            <p>Entries and customer balances are encrypted at rest inside IndexedDB with a 256-bit non-extractable device key.</p>
-          </article>
+          </div>
 
-          <article class="vk-card reveal-on-scroll">
-            <div class="vk-card-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"></rect><rect x="2" y="14" width="20" height="8" rx="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-            </div>
-            <h3>API Keys Never Exposed</h3>
-            <p>Speech requests route through our server-side proxy so private keys and service credentials never touch your browser.</p>
-          </article>
+          <!-- Right: Staggered Security Checklist -->
+          <ul class="vk-security-checklist" data-stagger-group>
+            <li class="vk-check-item reveal-up">
+              <span class="vk-check-badge" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </span>
+              <div>
+                <h3>Encrypted Ledger (AES-GCM 256-bit)</h3>
+                <p>Entries and customer balances are encrypted at rest inside IndexedDB with a non-extractable device key.</p>
+              </div>
+            </li>
 
-          <article class="vk-card reveal-on-scroll">
-            <div class="vk-card-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M12 18h.01"></path></svg>
-            </div>
-            <h3>Data Stays on Your Device</h3>
-            <p>Your ledger works directly from local storage without forcing cloud uploads. Voice audio is never saved.</p>
-          </article>
+            <li class="vk-check-item reveal-up">
+              <span class="vk-check-badge" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </span>
+              <div>
+                <h3>API Keys Never Exposed</h3>
+                <p>Speech requests route through our server-side proxy so private credentials never reach your browser.</p>
+              </div>
+            </li>
 
-          <article class="vk-card reveal-on-scroll">
-            <div class="vk-card-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </div>
-            <h3>Delete Anytime</h3>
-            <p>One tap in Privacy &amp; Vault permanently removes every customer, entry, and encryption key from your device.</p>
-          </article>
+            <li class="vk-check-item reveal-up">
+              <span class="vk-check-badge" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </span>
+              <div>
+                <h3>Data Stays on Your Device</h3>
+                <p>Works directly from encrypted local storage without forcing uploads. Spoken audio is never recorded or retained.</p>
+              </div>
+            </li>
+
+            <li class="vk-check-item reveal-up">
+              <span class="vk-check-badge" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </span>
+              <div>
+                <h3>Delete Anytime in One Tap</h3>
+                <p>Permanently erase every customer, entry, report, and encryption key from Privacy &amp; Vault whenever you choose.</p>
+              </div>
+            </li>
+          </ul>
         </div>
       </div>
     </section>
 
-    <!-- 8. FAQ Accordion -->
-    <section class="vk-section" id="faq">
-      <div class="vk-container">
-        <div class="vk-section-head reveal-on-scroll">
-          <span class="vk-section-eyebrow">FAQ</span>
-          <h2 class="vk-section-title">Common questions</h2>
-        </div>
+    <div class="vk-gold-rule" aria-hidden="true"></div>
 
-        <div class="vk-faq-list">
-          <details class="vk-faq-item reveal-on-scroll" open>
-            <summary>
+    <!-- 8. FAQ Accordion — Deep Navy, Strictly One Open At A Time -->
+    <section class="vk-section vk-band-dark vk-section--deferred" id="faq">
+      <div class="vk-container">
+        <header class="vk-section-head reveal-up">
+          <span class="vk-section-eyebrow">FAQ</span>
+          <h2 class="vk-section-title" data-split-heading>
+            Common <span class="gold-text">questions</span>
+          </h2>
+          <p class="vk-section-sub">Straight answers on privacy, offline reliability, and supported languages.</p>
+        </header>
+
+        <div class="vk-faq-list" id="faqAccordion" data-stagger-group>
+          <div class="vk-faq-item vk-glass-card is-open reveal-up">
+            <button type="button" class="vk-faq-trigger" aria-expanded="true">
               <span>Is my shop data safe and private?</span>
               <svg class="vk-faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </summary>
-            <div class="vk-faq-answer">
-              Yes. Your customer accounts and ledger entries are encrypted on your own device using AES-GCM 256-bit encryption. Voice recordings are processed only while you speak and are never stored.
+            </button>
+            <div class="vk-faq-panel">
+              <div class="vk-faq-answer">
+                Yes. Your customer accounts and ledger entries are encrypted on your own device using AES-GCM 256-bit encryption. Voice recordings are processed only while you speak and are never stored.
+              </div>
             </div>
-          </details>
+          </div>
 
-          <details class="vk-faq-item reveal-on-scroll">
-            <summary>
+          <div class="vk-faq-item vk-glass-card reveal-up">
+            <button type="button" class="vk-faq-trigger" aria-expanded="false">
               <span>Does Voice Khata work offline?</span>
               <svg class="vk-faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </summary>
-            <div class="vk-faq-answer">
-              Yes. Once installed or loaded, the app shell, local ledger, reports, and typing entry continue working offline. When internet connectivity is available, live cloud speech processing resumes automatically.
+            </button>
+            <div class="vk-faq-panel">
+              <div class="vk-faq-answer">
+                Yes. Once installed or loaded, the app shell, local ledger, reports, and typing entry continue working offline. When internet connectivity is available, live cloud speech processing and sync resume automatically.
+              </div>
             </div>
-          </details>
+          </div>
 
-          <details class="vk-faq-item reveal-on-scroll">
-            <summary>
+          <div class="vk-faq-item vk-glass-card reveal-up">
+            <button type="button" class="vk-faq-trigger" aria-expanded="false">
               <span>Which languages are supported?</span>
               <svg class="vk-faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </summary>
-            <div class="vk-faq-answer">
-              The interface supports English, Hindi, Kannada, Tamil, and Urdu (with full right-to-left layout), and the voice ledger parser understands natural English and Hinglish phrases including everyday Indian number shorthand.
+            </button>
+            <div class="vk-faq-panel">
+              <div class="vk-faq-answer">
+                The interface and voice recognition support English, Hindi, Kannada, Tamil, and Urdu (with full right-to-left layout), and the ledger parser understands natural English and Hinglish phrases including everyday Indian number shorthand.
+              </div>
             </div>
-          </details>
+          </div>
 
-          <details class="vk-faq-item reveal-on-scroll">
-            <summary>
+          <div class="vk-faq-item vk-glass-card reveal-up">
+            <button type="button" class="vk-faq-trigger" aria-expanded="false">
               <span>Is Voice Khata free?</span>
               <svg class="vk-faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </summary>
-            <div class="vk-faq-answer">
-              Yes. You can open Voice Khata and manage your daily credit book, dues, profit and loss summaries, and stock counts completely free.
+            </button>
+            <div class="vk-faq-panel">
+              <div class="vk-faq-answer">
+                Yes. You can open Voice Khata and manage your daily credit book, dues, profit and loss summaries, and stock counts completely free.
+              </div>
             </div>
-          </details>
+          </div>
 
-          <details class="vk-faq-item reveal-on-scroll">
-            <summary>
+          <div class="vk-faq-item vk-glass-card reveal-up">
+            <button type="button" class="vk-faq-trigger" aria-expanded="false">
               <span>Do I need to sign up to start using it?</span>
               <svg class="vk-faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </summary>
-            <div class="vk-faq-answer">
-              No signup is required. Click Get Started to open your blank khata immediately on your device. Optional account sign-in with a typed 4-digit shop PIN is available inside the app whenever you want it.
+            </button>
+            <div class="vk-faq-panel">
+              <div class="vk-faq-answer">
+                No signup is required. Click Get Started to open your encrypted khata immediately on your device. Optional cloud account sign-in with Row-Level Security and a 4-digit shop PIN is available inside the app whenever you want it.
+              </div>
             </div>
-          </details>
+          </div>
 
-          <details class="vk-faq-item reveal-on-scroll">
-            <summary>
+          <div class="vk-faq-item vk-glass-card reveal-up">
+            <button type="button" class="vk-faq-trigger" aria-expanded="false">
               <span>What if I speak the wrong amount by mistake?</span>
               <svg class="vk-faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </summary>
-            <div class="vk-faq-answer">
-              Just say &ldquo;No, 650&rdquo; or &ldquo;Make it 650&rdquo; right after. Voice Khata updates the amount in place without creating a duplicate row and confirms the corrected figure aloud.
+            </button>
+            <div class="vk-faq-panel">
+              <div class="vk-faq-answer">
+                Just say &ldquo;No, 650&rdquo; or &ldquo;Make it 650&rdquo; right after. Voice Khata updates the amount in place without creating a duplicate row and confirms the corrected figure aloud.
+              </div>
             </div>
-          </details>
+          </div>
 
-          <details class="vk-faq-item reveal-on-scroll">
-            <summary>
+          <div class="vk-faq-item vk-glass-card reveal-up">
+            <button type="button" class="vk-faq-trigger" aria-expanded="false">
               <span>Can I install Voice Khata on my phone?</span>
               <svg class="vk-faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </summary>
-            <div class="vk-faq-answer">
-              Yes. Voice Khata is a Progressive Web App (PWA). On Android Chrome tap &ldquo;Add to Home screen&rdquo;, or on iPhone Safari tap Share and select &ldquo;Add to Home Screen&rdquo;.
+            </button>
+            <div class="vk-faq-panel">
+              <div class="vk-faq-answer">
+                Yes. Voice Khata is an installable Progressive Web App (PWA). On Android Chrome tap &ldquo;Add to Home screen&rdquo;, or on iPhone Safari tap Share and select &ldquo;Add to Home Screen&rdquo;.
+              </div>
             </div>
-          </details>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- 9. Final CTA Banner -->
-    <section class="vk-cta-section">
+    <div class="vk-gold-rule" aria-hidden="true"></div>
+
+    <!-- 9. Final CTA Banner — Animated Glowing Gold Border Card on Deep Navy -->
+    <section class="vk-section vk-band-dark vk-cta-section vk-section--deferred" data-anim-section>
       <div class="vk-container">
-        <div class="vk-cta-banner reveal-on-scroll">
-          <div>
-            <h2>Start managing your khata by voice</h2>
-            <p>Open your encrypted credit book in one tap—ready for your first customer entry right now.</p>
+        <div class="vk-cta-glow-wrap reveal-up">
+          <div class="vk-cta-banner">
+            <div>
+              <span class="vk-section-eyebrow">Ready When You Are</span>
+              <h2>Start managing your khata <span class="gold-text">by voice</span></h2>
+              <p>Open your encrypted credit book in one tap—ready for your first customer entry right now.</p>
+            </div>
+            <div class="vk-cta-actions">
+              <a href="/app" class="vk-btn vk-btn-primary vk-btn-lg">
+                <span data-i18n="nav.getStarted">Get Started</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </a>
+            </div>
           </div>
-          <a href="/app" class="vk-btn-primary vk-btn-accent vk-btn-lg">
-            <span data-i18n="nav.getStarted">Get Started</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-              <polyline points="12 5 19 12 12 19"></polyline>
-            </svg>
-          </a>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- 10. Clean Production Footer -->
-  <footer class="vk-footer" role="contentinfo">
+  <div class="vk-gold-rule" aria-hidden="true"></div>
+
+  <!-- 10. Clean Luxury Footer -->
+  <footer class="vk-footer vk-band-dark vk-section--deferred" role="contentinfo">
     <div class="vk-container">
       <div class="vk-footer-top">
         <div class="vk-footer-brand-col">
-          <a href="/" class="vk-brand">
+          <a href="#top" class="vk-brand">
             <span class="vk-brand-icon" aria-hidden="true">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E6A825" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="2" width="6" height="11" rx="3" fill="#E6A825" stroke="none"></rect>
-                <path d="M5 10v2a7 7 0 0 0 14 0v-2" stroke="#FAF8F5"></path>
-                <line x1="12" y1="19" x2="12" y2="22" stroke="#FAF8F5"></line>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#C9A961" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="2" width="6" height="11" rx="3" fill="#C9A961" stroke="none"></rect>
+                <path d="M5 10v2a7 7 0 0 0 14 0v-2" stroke="#F5F5F0"></path>
+                <line x1="12" y1="19" x2="12" y2="22" stroke="#F5F5F0"></line>
               </svg>
             </span>
-            <span class="vk-brand-name">Voice <span>Khata</span></span>
+            <span class="vk-brand-name">Voice <span class="gold-text">Khata</span></span>
           </a>
           <p class="vk-footer-desc">
-            A calm, private voice-first credit book built for shopkeepers, vendors, and households across India.
+            A calm, private voice-first credit book engineered for shopkeepers, vendors, and households across India.
           </p>
         </div>
 
         <nav class="vk-footer-links" aria-label="Footer navigation">
           <a href="#features">Features</a>
+          <a href="#how-it-works">How it Works</a>
           <a href="#security">Security</a>
           <a href="#faq">FAQ</a>
           <a href="/privacy">Privacy Policy</a>
@@ -530,7 +835,7 @@
 
       <div class="vk-footer-bottom">
         <span>&copy; 2026 Voice Khata. All rights reserved.</span>
-        <span>Simple bookkeeping estimate, not a tax or audit document.</span>
+        <span>Encrypted locally on your device.</span>
       </div>
     </div>
   </footer>

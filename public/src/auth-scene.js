@@ -1,12 +1,16 @@
 /**
- * TalkLedger 3D Animated Auth Scene (public/src/auth-scene.js)
- * - Lazily loads Three.js v0.169.0 from cdnjs AFTER the auth form is interactive.
- * - Floating, slowly rotating 3D rounded Ledger Book + orbiting Rupee Coin + Microphone.
- * - Matte materials read live from theme CSS variables and update on theme change.
- * - Reactive states: idle | typing | listening (AnalyserNode volume) | processing | success | error.
- * - Full safeguards: prefers-reduced-motion static SVG, pixelRatio <= 2, WebGL/low-mem/FPS<24 fallback,
- *   pauses on hidden tab or off-screen, aria-hidden="true", full dispose() with zero leaks.
+ * Voice Khata — Aurora AI 3D Animated Auth Scene (public/src/auth-scene.js)
+ * - Immediately launches zero-dependency WebGL Aurora 3D Silk Shader background.
+ * - Lazily loads Three.js v0.169.0 to render an interactive 3D Aurora Constellation:
+ *   floating Ledger Book + iridescent Geodesic Aurora Core + 3 counter-rotating luminous
+ *   orbital rings + orbiting Microphone & Rupee Coin + 90 floating luminescent particles
+ *   + dynamic cyan/violet/marigold aurora point lights.
+ * - If Three.js CDN is offline, seamlessly upgrades to a live 60fps 2D/3D Canvas Aurora
+ *   Orbital Core so the login screen stays vivid & animated everywhere.
+ * - Full safeguards: prefers-reduced-motion static SVG, DPR <= 2, offscreen/tab pause, full dispose().
  */
+
+import { Aurora3DEngine } from './aurora-3d.js';
 
 const THREE_CDN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/0.169.0/three.module.min.js';
 
@@ -45,10 +49,11 @@ export class AuthScene3D {
     this.camera = null;
     this.objects = {};
     this.confetti = [];
-    this.lowFpsStart = null;
     this.errorShakeTimer = 0;
     this.successTimer = 0;
     this.fallbackActive = false;
+    this.auroraBg = null;
+    this.canvasFallbackRaf = null;
 
     this.reducedMotion =
       typeof window !== 'undefined' &&
@@ -59,50 +64,184 @@ export class AuthScene3D {
   async init() {
     if (!this.mountEl || this.disposed) return;
 
-    // Show crisp static SVG fallback immediately when reduced-motion, low-memory, or no WebGL
-    const lowMem = typeof navigator.deviceMemory === 'number' && navigator.deviceMemory <= 2;
-    if (this.reducedMotion || lowMem || !isWebGLSupported()) {
-      this.activateStaticFallback(
-        this.reducedMotion ? 'reduced-motion' : lowMem ? 'low-memory' : 'no-webgl'
-      );
+    // 1. Mount full-pane WebGL Aurora Silk Shader behind the 3D scene immediately
+    const pane = this.mountEl.closest('.auth-scene-pane');
+    if (pane) {
+      let bgCanvas = pane.querySelector('.auth-aurora-bg-canvas');
+      if (!bgCanvas) {
+        bgCanvas = document.createElement('canvas');
+        bgCanvas.className = 'auth-aurora-bg-canvas';
+        bgCanvas.setAttribute('aria-hidden', 'true');
+        pane.prepend(bgCanvas);
+      }
+      this.auroraBg = new Aurora3DEngine(bgCanvas, { mode: 'auth' });
+      this.auroraBg.init();
+      this.auroraBg.setState(this.state);
+    }
+
+    // 2. Respect prefers-reduced-motion cleanly
+    if (this.reducedMotion) {
+      this.activateStaticFallback('reduced-motion');
       return;
     }
 
-    // Lazy load Three.js after the auth form is already interactive
+    // 3. Start animated Canvas Aurora Orb immediately while Three.js streams in
+    this.startCanvasOrbFallback('loading');
+
+    const lowMem = typeof navigator.deviceMemory === 'number' && navigator.deviceMemory <= 2;
+    if (lowMem || !isWebGLSupported()) {
+      return;
+    }
+
     try {
       this.THREE = await import(THREE_CDN_URL);
       if (this.disposed) return;
+      this.stopCanvasOrbFallback();
       this.buildScene();
       this.bindLifecycle();
       this.startLoop();
     } catch {
-      this.activateStaticFallback('cdn-offline');
+      // Keep the smooth zero-dependency animated Canvas Aurora Orb running!
+    }
+  }
+
+  startCanvasOrbFallback(reason = 'canvas-aurora') {
+    if (!this.mountEl || this.disposed) return;
+    this.mountEl.dataset.fallback = reason;
+    this.mountEl.innerHTML = '';
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'auth-orb-canvas';
+    canvas.setAttribute('aria-hidden', 'true');
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.display = 'block';
+    this.mountEl.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const t0 = performance.now();
+
+    const draw = (now) => {
+      if (this.disposed || this.renderer) return;
+      const rect = this.mountEl.getBoundingClientRect();
+      const w = Math.max(220, rect.width || 360);
+      const h = Math.max(200, rect.height || 300);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+      }
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, w, h);
+
+      const t = (now - t0) * 0.001;
+      const cx = w * 0.5 + this.pointer.x * 16;
+      const cy = h * 0.5 + this.pointer.y * 12;
+      const pulse = 1 + this.micVolume * 0.25 + (this.state === 'processing' ? 0.08 * Math.sin(t * 8) : 0);
+      const baseR = Math.min(w, h) * 0.24 * pulse;
+
+      // Volumetric aurora orb core
+      const coreGrad = ctx.createRadialGradient(
+        cx - baseR * 0.25,
+        cy - baseR * 0.28,
+        baseR * 0.1,
+        cx,
+        cy,
+        baseR * 1.45
+      );
+      if (this.state === 'success') {
+        coreGrad.addColorStop(0, 'rgba(245, 245, 240, 0.95)');
+        coreGrad.addColorStop(0.38, 'rgba(74, 222, 128, 0.72)');
+        coreGrad.addColorStop(0.75, 'rgba(201, 169, 97, 0.36)');
+        coreGrad.addColorStop(1, 'rgba(74, 222, 128, 0)');
+      } else if (this.state === 'error') {
+        coreGrad.addColorStop(0, 'rgba(245, 245, 240, 0.92)');
+        coreGrad.addColorStop(0.42, 'rgba(248, 113, 113, 0.78)');
+        coreGrad.addColorStop(1, 'rgba(248, 113, 113, 0)');
+      } else {
+        coreGrad.addColorStop(0, 'rgba(245, 245, 240, 0.96)');
+        coreGrad.addColorStop(0.32, 'rgba(232, 213, 163, 0.88)');
+        coreGrad.addColorStop(0.65, 'rgba(201, 169, 97, 0.56)');
+        coreGrad.addColorStop(1, 'rgba(168, 136, 63, 0)');
+      }
+
+      ctx.fillStyle = coreGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, baseR * 1.45, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3 Counter-rotating 3D-projected champagne-gold & ivory orbital rings
+      const rings = [
+        { rx: baseR * 1.65, ry: baseR * 0.62, rot: t * 0.55, color: 'rgba(232, 213, 163, 0.68)', lw: 1.8 },
+        { rx: baseR * 1.42, ry: baseR * 0.56, rot: -t * 0.72 + 1.1, color: 'rgba(201, 169, 97, 0.62)', lw: 1.6 },
+        { rx: baseR * 1.88, ry: baseR * 0.48, rot: t * 0.36 + 2.2, color: 'rgba(245, 245, 240, 0.34)', lw: 1.2 },
+      ];
+      for (const ring of rings) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(ring.rot);
+        ctx.strokeStyle = ring.color;
+        ctx.lineWidth = ring.lw;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, ring.rx, ring.ry, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Orbiting bright node on each ring
+        const nodeAngle = t * 1.8 + ring.rot;
+        const nx = Math.cos(nodeAngle) * ring.rx;
+        const ny = Math.sin(nodeAngle) * ring.ry;
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = ring.color;
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.arc(nx, ny, 4.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Crisp Rupee emblem at center
+      ctx.fillStyle = 'rgba(19, 29, 51, 0.88)';
+      ctx.font = `700 ${Math.round(baseR * 0.78)}px Inter, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('₹', cx, cy + 2);
+
+      ctx.restore();
+      this.canvasFallbackRaf = window.requestAnimationFrame(draw);
+    };
+
+    this.canvasFallbackRaf = window.requestAnimationFrame(draw);
+  }
+
+  stopCanvasOrbFallback() {
+    if (this.canvasFallbackRaf !== null) {
+      window.cancelAnimationFrame(this.canvasFallbackRaf);
+      this.canvasFallbackRaf = null;
     }
   }
 
   activateStaticFallback(reason = 'static') {
     this.fallbackActive = true;
+    this.stopCanvasOrbFallback();
     this.disposeWebGLOnly();
     if (!this.mountEl) return;
     this.mountEl.dataset.fallback = reason;
     this.mountEl.innerHTML = `
       <div class="auth-svg-fallback" aria-hidden="true">
         <svg viewBox="0 0 280 240" width="240" height="205" fill="none">
-          <ellipse cx="140" cy="212" rx="76" ry="12" fill="currentColor" opacity="0.14"/>
-          <!-- Rounded Ledger Book -->
-          <rect x="66" y="48" width="136" height="148" rx="16" fill="var(--primary)" />
-          <rect x="76" y="54" width="120" height="136" rx="11" fill="var(--surface)" opacity="0.12" />
-          <rect x="66" y="48" width="22" height="148" rx="8" fill="var(--burgundy)" />
-          <rect x="116" y="96" width="54" height="8" rx="4" fill="var(--accent)" opacity="0.88" />
-          <rect x="116" y="114" width="38" height="6" rx="3" fill="var(--surface)" opacity="0.55" />
-          <!-- Orbiting Gold Coin -->
-          <circle cx="222" cy="74" r="24" fill="var(--accent)" />
-          <circle cx="222" cy="74" r="18" stroke="var(--primary)" stroke-width="2" opacity="0.45" />
-          <text x="222" y="81" text-anchor="middle" fill="var(--primary)" font-size="20" font-weight="700">₹</text>
-          <!-- Orbiting Microphone -->
-          <rect x="34" y="112" width="22" height="36" rx="11" fill="var(--accent)" />
-          <path d="M26 138C26 149 34 156 45 156C56 156 64 149 64 138" stroke="var(--text-on-dark)" stroke-width="3.5" stroke-linecap="round"/>
-          <line x1="45" y1="156" x2="45" y2="168" stroke="var(--text-on-dark)" stroke-width="3.5" stroke-linecap="round"/>
+          <ellipse cx="140" cy="120" rx="96" ry="42" stroke="#C9A961" stroke-width="1.6" opacity="0.55"/>
+          <ellipse cx="140" cy="120" rx="78" ry="62" stroke="#E8D5A3" stroke-width="1.4" opacity="0.45"/>
+          <circle cx="140" cy="120" r="46" fill="url(#vkStaticAura)"/>
+          <text x="140" y="132" text-anchor="middle" fill="#0B0F19" font-size="36" font-weight="700">₹</text>
+          <defs>
+            <radialGradient id="vkStaticAura" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(130 108) rotate(50) scale(60)">
+              <stop stop-color="#F5F5F0"/>
+              <stop offset="0.45" stop-color="#E8D5A3"/>
+              <stop offset="1" stop-color="#C9A961"/>
+            </radialGradient>
+          </defs>
         </svg>
       </div>
     `;
@@ -111,11 +250,11 @@ export class AuthScene3D {
   buildScene() {
     const THREE = this.THREE;
     const width = Math.max(240, this.mountEl.clientWidth || 380);
-    const height = Math.max(180, this.mountEl.clientHeight || 360);
+    const height = Math.max(200, this.mountEl.clientHeight || 360);
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 50);
-    this.camera.position.set(0, 0.35, 6.4);
+    this.camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 60);
+    this.camera.position.set(0, 0.25, 6.6);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -127,93 +266,189 @@ export class AuthScene3D {
     this.renderer.domElement.style.pointerEvents = 'none';
     this.mountEl.appendChild(this.renderer.domElement);
 
-    // Soft studio lighting
-    const hemi = new THREE.HemisphereLight(0xfffaf0, 0x131d33, 1.25);
-    const keyLight = new THREE.DirectionalLight(0xfff6e5, 1.35);
-    keyLight.position.set(3.5, 4.5, 5);
-    const rimLight = new THREE.DirectionalLight(0xe6a825, 0.65);
-    rimLight.position.set(-4, -2, -3);
-    this.scene.add(hemi, keyLight, rimLight);
+    // Luxury Gold & Ivory 3D Studio Lighting Rig
+    const hemi = new THREE.HemisphereLight(0xfaf8f5, 0x0b0f19, 1.15);
+    const cyanLight = new THREE.PointLight(0xe8d5a3, 4.2, 16);
+    cyanLight.position.set(3.2, 2.4, 3.6);
+    const violetLight = new THREE.PointLight(0xc9a961, 4.0, 16);
+    violetLight.position.set(-3.4, -1.8, 3.2);
+    const goldLight = new THREE.PointLight(0xf5f5f0, 3.0, 14);
+    goldLight.position.set(0.4, 3.4, -2.2);
+    this.scene.add(hemi, cyanLight, violetLight, goldLight);
 
-    // Root Pivot Group
     const root = new THREE.Group();
     this.scene.add(root);
-    this.objects.root = root;
 
-    // 1. Rounded Ledger Book Group
+    // 1. Luxury Gold & Midnight Navy Geodesic Core
+    const auraCoreGroup = new THREE.Group();
+    const innerOrbMat = new THREE.MeshPhysicalMaterial({
+      color: new THREE.Color('#C9A961'),
+      emissive: new THREE.Color('#A8883F'),
+      emissiveIntensity: 0.48,
+      roughness: 0.18,
+      metalness: 0.65,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.12,
+    });
+    const innerOrb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.95, 3), innerOrbMat);
+
+    const wireMat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color('#E8D5A3'),
+      wireframe: true,
+      transparent: true,
+      opacity: 0.32,
+    });
+    const outerWire = new THREE.Mesh(new THREE.IcosahedronGeometry(1.22, 2), wireMat);
+
+    // Floating midnight-navy & gold-embossed ledger inside the constellation
     const bookGroup = new THREE.Group();
     const coverMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(getCssColorHex('--primary', '#131D33')),
-      roughness: 0.72,
-      metalness: 0.08,
+      color: new THREE.Color('#151C2C'),
+      roughness: 0.34,
+      metalness: 0.42,
+      emissive: new THREE.Color('#0B0F19'),
+      emissiveIntensity: 0.35,
     });
     const spineMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(getCssColorHex('--burgundy', '#7A1424')),
-      roughness: 0.68,
-      metalness: 0.1,
-    });
-    const pageMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(getCssColorHex('--surface', '#FAF8F5')),
-      roughness: 0.88,
-      metalness: 0.0,
+      color: new THREE.Color('#A8883F'),
+      roughness: 0.32,
+      metalness: 0.62,
     });
     const goldMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(getCssColorHex('--accent', '#E6A825')),
-      roughness: 0.42,
-      metalness: 0.35,
-      emissive: new THREE.Color('#000000'),
-      emissiveIntensity: 0,
+      color: new THREE.Color('#C9A961'),
+      roughness: 0.24,
+      metalness: 0.78,
+      emissive: new THREE.Color('#A8883F'),
+      emissiveIntensity: 0.24,
+    });
+    const bookBody = new THREE.Mesh(new THREE.BoxGeometry(0.92, 1.18, 0.2), coverMat);
+    const bookSpine = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2, 16), spineMat);
+    bookSpine.position.x = -0.45;
+    const bookEmblem = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.036, 12, 32), goldMat);
+    bookEmblem.position.set(0.05, 0.05, 0.13);
+    bookGroup.add(bookBody, bookSpine, bookEmblem);
+    bookGroup.position.set(0, 0, 1.38);
+    bookGroup.scale.setScalar(0.86);
+
+    auraCoreGroup.add(innerOrb, outerWire);
+    root.add(auraCoreGroup, bookGroup);
+
+    // 2. Three Counter-Rotating Champagne Gold & Ivory Orbital Rings
+    const ringMatA = new THREE.MeshStandardMaterial({
+      color: 0xe8d5a3,
+      emissive: 0xc9a961,
+      emissiveIntensity: 0.65,
+      roughness: 0.22,
+      metalness: 0.72,
+      transparent: true,
+      opacity: 0.82,
+    });
+    const ringMatB = new THREE.MeshStandardMaterial({
+      color: 0xc9a961,
+      emissive: 0xa8883f,
+      emissiveIntensity: 0.52,
+      roughness: 0.28,
+      metalness: 0.65,
+      transparent: true,
+      opacity: 0.68,
+    });
+    const ringMatC = new THREE.MeshStandardMaterial({
+      color: 0xf5f5f0,
+      emissive: 0xc9a961,
+      emissiveIntensity: 0.35,
+      roughness: 0.3,
+      metalness: 0.5,
+      transparent: true,
+      opacity: 0.45,
     });
 
-    const frontCover = new THREE.Mesh(new THREE.BoxGeometry(1.72, 2.25, 0.1), coverMat);
-    frontCover.position.z = 0.22;
-    const backCover = new THREE.Mesh(new THREE.BoxGeometry(1.72, 2.25, 0.1), coverMat);
-    backCover.position.z = -0.22;
-    const pages = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.12, 0.36), pageMat);
-    pages.position.x = 0.04;
-    const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.27, 2.26, 20), spineMat);
-    spine.position.x = -0.84;
-    const clasp = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.2, 0.14), goldMat);
-    clasp.position.set(0.68, 0, 0.24);
-    const emblem = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.045, 12, 32), goldMat);
-    emblem.position.set(0.08, 0.18, 0.28);
+    const ringA = new THREE.Mesh(new THREE.TorusGeometry(1.78, 0.024, 16, 80), ringMatA);
+    ringA.rotation.set(Math.PI * 0.36, 0.25, 0);
+    const ringB = new THREE.Mesh(new THREE.TorusGeometry(2.08, 0.02, 16, 84), ringMatB);
+    ringB.rotation.set(Math.PI * 0.62, -0.42, 0.3);
+    const ringC = new THREE.Mesh(new THREE.TorusGeometry(2.36, 0.016, 14, 92), ringMatC);
+    ringC.rotation.set(Math.PI * 0.22, 0.65, -0.4);
+    root.add(ringA, ringB, ringC);
 
-    bookGroup.add(frontCover, backCover, pages, spine, clasp, emblem);
-    root.add(bookGroup);
-
-    // 2. Orbiting Gold Coin
+    // 3. Orbiting Gold Rupee Coin + Voice Mic Satellites
     const coinPivot = new THREE.Group();
-    const coinGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.09, 28);
+    const coinGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.075, 28);
     coinGeo.rotateX(Math.PI / 2);
     const coin = new THREE.Mesh(coinGeo, goldMat.clone());
-    coin.position.set(1.95, 0.55, 0.4);
+    coin.position.set(1.92, 0.62, 0.35);
     coinPivot.add(coin);
     root.add(coinPivot);
 
-    // 3. Orbiting Microphone
     const micPivot = new THREE.Group();
     const micGroup = new THREE.Group();
     const micMat = goldMat.clone();
-    const micCapsule = new THREE.Mesh(new THREE.CapsuleGeometry(0.19, 0.34, 8, 16), micMat);
-    const micStand = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.26, 12), coverMat);
-    micStand.position.y = -0.38;
-    const micBase = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 0.06, 16), spineMat);
-    micBase.position.y = -0.52;
+    const micCapsule = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.3, 8, 16), micMat);
+    const micStand = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.22, 12), coverMat);
+    micStand.position.y = -0.32;
+    const micBase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.05, 16), spineMat);
+    micBase.position.y = -0.44;
     micGroup.add(micCapsule, micStand, micBase);
-    micGroup.position.set(-1.85, -0.25, 0.55);
+    micGroup.position.set(-1.86, -0.34, 0.45);
     micPivot.add(micGroup);
     root.add(micPivot);
 
+    // 4. 90 Luminescent 3D Aurora Starfield Particles
+    const particleCount = 90;
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    const palette = [
+      new THREE.Color('#E8D5A3'),
+      new THREE.Color('#C9A961'),
+      new THREE.Color('#F5F5F0'),
+      new THREE.Color('#A8883F'),
+    ];
+    for (let i = 0; i < particleCount; i += 1) {
+      const radius = 1.65 + Math.random() * 2.1;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      positions[i * 3 + 2] = radius * Math.cos(phi);
+      const col = palette[i % palette.length];
+      colors[i * 3] = col.r;
+      colors[i * 3 + 1] = col.g;
+      colors[i * 3 + 2] = col.b;
+    }
+    const pGeo = new THREE.BufferGeometry();
+    pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    pGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const pMat = new THREE.PointsMaterial({
+      size: 0.068,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.88,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const particles = new THREE.Points(pGeo, pMat);
+    root.add(particles);
+
     this.objects = {
       root,
+      auraCoreGroup,
+      innerOrb,
+      innerOrbMat,
+      outerWire,
+      wireMat,
       bookGroup,
+      ringA,
+      ringB,
+      ringC,
       coinPivot,
       coin,
       micPivot,
       micGroup,
+      particles,
+      cyanLight,
+      violetLight,
+      goldLight,
       coverMat,
       spineMat,
-      pageMat,
       goldMat,
       micMat,
     };
@@ -221,16 +456,15 @@ export class AuthScene3D {
 
   updateThemeColors() {
     if (!this.THREE || !this.objects.coverMat) return;
-    this.objects.coverMat.color.set(getCssColorHex('--primary', '#131D33'));
-    this.objects.spineMat.color.set(getCssColorHex('--burgundy', '#7A1424'));
-    this.objects.pageMat.color.set(getCssColorHex('--surface', '#FAF8F5'));
-    this.objects.goldMat.color.set(getCssColorHex('--accent', '#E6A825'));
-    this.objects.coin.material.color.set(getCssColorHex('--accent', '#E6A825'));
-    this.objects.micMat.color.set(getCssColorHex('--accent', '#E6A825'));
+    this.objects.coverMat.color.set(getCssColorHex('--bg-card', '#151C2C'));
+    this.objects.spineMat.color.set(getCssColorHex('--gold-dark', '#A8883F'));
+    this.objects.goldMat.color.set(getCssColorHex('--gold', '#C9A961'));
   }
 
   setState(nextState) {
     this.state = nextState;
+    this.auroraBg?.setState(nextState);
+
     if (this.stateBadgeEl) {
       const labels = {
         idle: 'Ready',
@@ -247,35 +481,38 @@ export class AuthScene3D {
     if (nextState === 'error') {
       this.errorShakeTimer = 0.55;
     } else if (nextState === 'success') {
-      this.successTimer = 1.6;
+      this.successTimer = 1.8;
       this.spawnConfetti();
     }
   }
 
   setMicVolume(vol) {
     this.micVolume = Math.max(0, Math.min(1, Number(vol) || 0));
+    this.auroraBg?.setEnergy(this.micVolume);
   }
 
   spawnConfetti() {
     if (!this.THREE || !this.scene) return;
     const THREE = this.THREE;
-    const palette = [0xe6a825, 0x0f766e, 0x7a1424, 0x84cc16];
-    for (let i = 0; i < 24; i += 1) {
+    const palette = [0xe8d5a3, 0xc9a961, 0xf5f5f0, 0x4ade80];
+    for (let i = 0; i < 32; i += 1) {
       const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(0.09, 0.09, 0.02),
+        new THREE.OctahedronGeometry(0.065, 0),
         new THREE.MeshStandardMaterial({
           color: palette[i % palette.length],
-          roughness: 0.45,
+          emissive: palette[i % palette.length],
+          emissiveIntensity: 0.6,
+          roughness: 0.3,
         })
       );
-      mesh.position.set(0, 0.4, 0.5);
+      mesh.position.set(0, 0.25, 0.6);
       const velocity = new THREE.Vector3(
-        (Math.random() - 0.5) * 0.14,
-        0.06 + Math.random() * 0.1,
-        (Math.random() - 0.5) * 0.1
+        (Math.random() - 0.5) * 0.18,
+        0.06 + Math.random() * 0.12,
+        (Math.random() - 0.5) * 0.14
       );
       this.scene.add(mesh);
-      this.confetti.push({ mesh, velocity, life: 1.4 });
+      this.confetti.push({ mesh, velocity, life: 1.6 });
     }
   }
 
@@ -304,7 +541,7 @@ export class AuthScene3D {
     this._onResize = () => {
       if (!this.renderer || !this.camera || !this.mountEl) return;
       const w = Math.max(200, this.mountEl.clientWidth);
-      const h = Math.max(160, this.mountEl.clientHeight);
+      const h = Math.max(180, this.mountEl.clientHeight);
       this.camera.aspect = w / h;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(w, h);
@@ -351,97 +588,126 @@ export class AuthScene3D {
       lastTs = ts;
       elapsed += dt;
 
-      // Monitor sustained low FPS (< 24fps for 3 seconds -> drop to static SVG fallback)
-      if (dt > 1 / 24) {
-        if (this.lowFpsStart === null) this.lowFpsStart = ts;
-        else if (ts - this.lowFpsStart > 3000) {
-          this.activateStaticFallback('low-fps');
-          return;
-        }
+      const {
+        root,
+        auraCoreGroup,
+        innerOrb,
+        innerOrbMat,
+        outerWire,
+        bookGroup,
+        ringA,
+        ringB,
+        ringC,
+        coinPivot,
+        coin,
+        micPivot,
+        micGroup,
+        particles,
+        cyanLight,
+        violetLight,
+        goldLight,
+        micMat,
+      } = this.objects;
+
+      const speedMult =
+        this.state === 'processing'
+          ? 2.8
+          : this.state === 'listening'
+          ? 1.9 + this.micVolume * 1.4
+          : this.state === 'typing'
+          ? 1.45
+          : 1.0;
+
+      // Smooth pointer + tilt parallax
+      const targetRotY = (this.pointer.x * 0.36 + this.tilt.x * 0.32);
+      const targetRotX = (this.pointer.y * 0.24 + this.tilt.y * 0.24);
+      root.rotation.y += (targetRotY - root.rotation.y) * 0.06;
+      root.rotation.x += (targetRotX - root.rotation.x) * 0.06;
+
+      // Core aurora orb breathing + color pulse
+      const breathe = 1 + Math.sin(elapsed * 2.1) * 0.05 + this.micVolume * 0.24;
+      innerOrb.scale.setScalar(breathe);
+      outerWire.scale.setScalar(1 + Math.cos(elapsed * 1.6) * 0.06 + this.micVolume * 0.32);
+      auraCoreGroup.rotation.y += dt * 0.48 * speedMult;
+      auraCoreGroup.rotation.x += dt * 0.24 * speedMult;
+      outerWire.rotation.z -= dt * 0.35 * speedMult;
+
+      // Dynamic state colors on core orb (restrained luxury palette)
+      if (this.state === 'success') {
+        innerOrbMat.color.lerp(new this.THREE.Color('#4ADE80'), 0.1);
+        innerOrbMat.emissive.lerp(new this.THREE.Color('#4ADE80'), 0.08);
+      } else if (this.state === 'error') {
+        innerOrbMat.color.lerp(new this.THREE.Color('#F87171'), 0.14);
+        innerOrbMat.emissive.lerp(new this.THREE.Color('#F87171'), 0.1);
+      } else if (this.state === 'listening') {
+        innerOrbMat.color.lerp(new this.THREE.Color('#E8D5A3'), 0.1);
+        innerOrbMat.emissive.lerp(new this.THREE.Color('#C9A961'), 0.1);
       } else {
-        this.lowFpsStart = null;
+        innerOrbMat.color.lerp(new this.THREE.Color('#C9A961'), 0.05);
+        innerOrbMat.emissive.lerp(new this.THREE.Color('#A8883F'), 0.05);
       }
 
-      this.stepAnimation(elapsed, dt);
+      // Floating glass ledger gently bobs in front
+      bookGroup.position.y = Math.sin(elapsed * 1.65) * 0.14;
+      bookGroup.rotation.y = Math.sin(elapsed * 0.85) * 0.28;
+      bookGroup.rotation.z = Math.cos(elapsed * 0.7) * 0.05;
+
+      // Counter-rotating luminous orbital rings
+      ringA.rotation.z += dt * 0.65 * speedMult;
+      ringB.rotation.z -= dt * 0.52 * speedMult;
+      ringC.rotation.y += dt * 0.38 * speedMult;
+
+      // Satellites
+      coinPivot.rotation.y += dt * 0.55 * speedMult;
+      coin.rotation.y += dt * 1.8 * speedMult;
+      coin.position.y = 0.55 + Math.sin(elapsed * 2.2) * 0.14;
+
+      micPivot.rotation.y -= dt * 0.42 * speedMult;
+      micGroup.position.y = -0.3 + Math.cos(elapsed * 2.0) * 0.14;
+      const micScale = 1 + this.micVolume * 0.32;
+      micGroup.scale.setScalar(micScale);
+      micMat.emissiveIntensity = 0.28 + this.micVolume * 1.25;
+
+      // Orbiting particles & lights
+      particles.rotation.y += dt * 0.14 * speedMult;
+      particles.rotation.x = Math.sin(elapsed * 0.3) * 0.18;
+
+      cyanLight.position.x = Math.cos(elapsed * 0.7) * 3.6;
+      cyanLight.position.y = Math.sin(elapsed * 0.9) * 2.4;
+      violetLight.position.x = Math.sin(elapsed * 0.6) * -3.6;
+      violetLight.position.y = Math.cos(elapsed * 0.8) * 2.2;
+      goldLight.intensity = 3.2 + this.micVolume * 3.5;
+
+      // Error shake recoil
+      if (this.errorShakeTimer > 0) {
+        this.errorShakeTimer = Math.max(0, this.errorShakeTimer - dt);
+        root.position.x = Math.sin(this.errorShakeTimer * 44) * 0.18 * (this.errorShakeTimer / 0.55);
+      } else {
+        root.position.x = 0;
+      }
+
+      // Update success particle bursts
+      for (let i = this.confetti.length - 1; i >= 0; i -= 1) {
+        const c = this.confetti[i];
+        c.life -= dt;
+        c.velocity.y -= dt * 0.18;
+        c.mesh.position.add(c.velocity);
+        c.mesh.rotation.x += dt * 6;
+        c.mesh.rotation.y += dt * 5;
+        c.mesh.scale.setScalar(Math.max(0.01, c.life / 1.6));
+        if (c.life <= 0) {
+          this.scene.remove(c.mesh);
+          c.mesh.geometry.dispose();
+          c.mesh.material.dispose();
+          this.confetti.splice(i, 1);
+        }
+      }
+
       this.renderer.render(this.scene, this.camera);
       this.rafId = window.requestAnimationFrame(frame);
     };
 
     this.rafId = window.requestAnimationFrame(frame);
-  }
-
-  stepAnimation(t, dt) {
-    const { root, bookGroup, coinPivot, coin, micPivot, micGroup, coverMat, micMat } = this.objects;
-    if (!root) return;
-
-    // Gentle float + mouse/tilt parallax
-    const px = this.pointer.x * 0.22 + this.tilt.x * 0.24;
-    const py = this.pointer.y * 0.14 + this.tilt.y * 0.16;
-    root.position.y = Math.sin(t * 1.4) * 0.12;
-    root.rotation.y += (px - root.rotation.y) * Math.min(1, dt * 4);
-    root.rotation.x += (py - root.rotation.x) * Math.min(1, dt * 4);
-
-    // Book rotation & typing lean
-    const targetLeanY = this.state === 'typing' ? 0.34 : Math.sin(t * 0.6) * 0.22;
-    const targetLeanZ = this.state === 'typing' ? -0.09 : Math.cos(t * 0.5) * 0.04;
-    bookGroup.rotation.y += (targetLeanY - bookGroup.rotation.y) * Math.min(1, dt * 5);
-    bookGroup.rotation.z += (targetLeanZ - bookGroup.rotation.z) * Math.min(1, dt * 5);
-
-    // Error horizontal shake + crimson emissive tint
-    if (this.errorShakeTimer > 0) {
-      this.errorShakeTimer = Math.max(0, this.errorShakeTimer - dt);
-      bookGroup.position.x = Math.sin(this.errorShakeTimer * 44) * 0.22 * this.errorShakeTimer;
-      coverMat.emissive.set('#991B1B');
-      coverMat.emissiveIntensity = 0.45 * this.errorShakeTimer;
-    } else {
-      bookGroup.position.x *= 0.85;
-      coverMat.emissiveIntensity = 0;
-    }
-
-    // Coin orbit / fast processing spin / success landing
-    if (this.state === 'processing') {
-      coinPivot.rotation.y += dt * 3.8;
-      coin.rotation.y += dt * 11.0;
-    } else if (this.state === 'success' && this.successTimer > 0) {
-      this.successTimer = Math.max(0, this.successTimer - dt);
-      coin.position.x += (0.05 - coin.position.x) * Math.min(1, dt * 6);
-      coin.position.y += (0.18 - coin.position.y) * Math.min(1, dt * 6);
-      coin.position.z += (0.38 - coin.position.z) * Math.min(1, dt * 6);
-    } else {
-      coinPivot.rotation.y += dt * 0.55;
-      coin.rotation.y += dt * 1.4;
-      coin.position.x += (1.95 - coin.position.x) * Math.min(1, dt * 3);
-      coin.position.y += (0.55 + Math.sin(t * 2) * 0.14 - coin.position.y) * Math.min(1, dt * 3);
-      coin.position.z += (0.4 - coin.position.z) * Math.min(1, dt * 3);
-    }
-
-    // Microphone orbit + listening pulse scaled by live AnalyserNode micVolume
-    micPivot.rotation.y -= dt * 0.42;
-    if (this.state === 'listening') {
-      const pulse = 1 + 0.18 * Math.sin(t * 9) + this.micVolume * 0.42;
-      micGroup.scale.setScalar(pulse);
-      micMat.emissive.set('#E6A825');
-      micMat.emissiveIntensity = 0.35 + this.micVolume * 0.55;
-    } else {
-      micGroup.scale.lerp({ x: 1, y: 1, z: 1 }, Math.min(1, dt * 6));
-      micMat.emissiveIntensity = 0;
-    }
-
-    // Confetti physics on success
-    for (let i = this.confetti.length - 1; i >= 0; i -= 1) {
-      const p = this.confetti[i];
-      p.life -= dt;
-      p.velocity.y -= dt * 0.26;
-      p.mesh.position.add(p.velocity);
-      p.mesh.rotation.x += dt * 6;
-      p.mesh.rotation.y += dt * 4;
-      if (p.life <= 0) {
-        this.scene.remove(p.mesh);
-        p.mesh.geometry.dispose();
-        p.mesh.material.dispose();
-        this.confetti.splice(i, 1);
-      }
-    }
   }
 
   pauseLoop() {
@@ -454,35 +720,27 @@ export class AuthScene3D {
 
   disposeWebGLOnly() {
     this.pauseLoop();
-    if (this.scene) {
-      this.scene.traverse((obj) => {
-        if (obj.geometry) obj.geometry.dispose();
-        if (obj.material) {
-          if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose());
-          else obj.material.dispose();
-        }
-      });
-    }
     if (this.renderer) {
       this.renderer.dispose();
-      if (this.renderer.domElement?.parentNode) {
-        this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
-      }
+      this.renderer = null;
     }
-    this.renderer = null;
     this.scene = null;
     this.camera = null;
-    this.confetti = [];
   }
 
   dispose() {
     this.disposed = true;
+    this.stopCanvasOrbFallback();
     this.disposeWebGLOnly();
-    window.removeEventListener('resize', this._onResize);
-    window.removeEventListener('pointermove', this._onPointer);
-    window.removeEventListener('talkledger:themechange', this._onTheme);
-    window.removeEventListener('deviceorientation', this._onOrientation);
-    document.removeEventListener('visibilitychange', this._onVisibility);
+    if (this.auroraBg) {
+      this.auroraBg.dispose();
+      this.auroraBg = null;
+    }
+    if (this._onResize) window.removeEventListener('resize', this._onResize);
+    if (this._onPointer) window.removeEventListener('pointermove', this._onPointer);
+    if (this._onTheme) window.removeEventListener('talkledger:themechange', this._onTheme);
+    if (this._onVisibility) document.removeEventListener('visibilitychange', this._onVisibility);
+    if (this._onOrientation) window.removeEventListener('deviceorientation', this._onOrientation);
     if (this.observer) {
       this.observer.disconnect();
       this.observer = null;

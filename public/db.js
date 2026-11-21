@@ -406,6 +406,7 @@ export async function pullStateFromSupabase() {
       customers: (custRes.data || []).map((c) => ({
         name: c.name,
         optInReminder: Boolean(c.opt_in_reminder),
+        isFavorite: Boolean(c.is_favorite),
       })),
       entries: (entriesRes.data || []).map((e) => ({
         id: e.id,
@@ -479,6 +480,7 @@ export async function syncStateToSupabase(state) {
         name_key: String(c.name || '').trim().toLowerCase(),
         name: String(c.name || '').trim(),
         opt_in_reminder: Boolean(c.optInReminder),
+        is_favorite: Boolean(c.isFavorite),
       }));
       ops.push(supabaseClient.from('vk_customers').upsert(custRows, { onConflict: 'user_id,name_key' }));
     }

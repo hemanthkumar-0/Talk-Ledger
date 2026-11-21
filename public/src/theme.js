@@ -9,7 +9,7 @@
 const STORAGE_KEY = 'talkledger-theme';
 const THEME_COLORS = {
   light: '#FAF8F5',
-  dark: '#0B1120',
+  dark: '#0B0F19',
 };
 
 const mediaQuery =
@@ -26,7 +26,7 @@ export function getSavedThemeMode() {
   } catch {
     // ignore
   }
-  return 'system';
+  return 'dark';
 }
 
 export function resolveTheme(mode = getSavedThemeMode()) {

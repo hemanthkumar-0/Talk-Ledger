@@ -1,4 +1,4 @@
-const CACHE_NAME = 'voice-khata-shell-v5';
+const CACHE_NAME = 'voice-khata-shell-v10';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -26,11 +26,16 @@ const APP_SHELL = [
   '/src/i18n.js',
   '/src/theme.js',
   '/src/signal-bg.js',
+  '/src/aurora-3d.js',
   '/src/landing.js',
   '/src/parser.js',
   '/src/vault.js',
+  '/src/audio-utils.js',
+  '/src/pcm-worklet.js',
   '/src/audio.js',
   '/src/voice.js',
+  '/src/debug-log.js',
+  '/src/fps-meter.js',
   '/src/reports.js',
   '/src/auth-scene.js',
   '/src/auth.js',
