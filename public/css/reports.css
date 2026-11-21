@@ -107,7 +107,7 @@
 
 .report-card-head h3 {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: 22px;
   font-weight: 600;
   color: var(--text);
@@ -676,7 +676,7 @@
 
 .lime-headline {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: clamp(22px, 2.5vw, 28px);
   font-weight: 600;
   letter-spacing: -0.02em;

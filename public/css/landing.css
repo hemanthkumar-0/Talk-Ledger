@@ -1,7 +1,7 @@
 /* ==========================================================================
    Voice Khata — Luxury Fintech Landing & Legal Styles
    Deep Midnight Navy (#0B0F19) · Warm Ivory (#FAF8F5) · Champagne Gold (#C9A961)
-   Playfair Display + Inter · Glassmorphism · 3D Icons · Scroll Motion · 320px–1440px
+   Plus Jakarta Sans + Inter · Glassmorphism · 3D Icons · Scroll Motion · 320px–1440px
    ========================================================================== */
 
 /* Top Gold Scroll Progress Bar (GPU transform only) */
@@ -298,7 +298,7 @@
 }
 
 .vk-brand-name {
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -520,7 +520,7 @@
 
 .vk-hero-title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: clamp(40px, 5.2vw, 64px);
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -752,7 +752,7 @@
 }
 
 .vk-phone-title {
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
@@ -963,7 +963,7 @@
 
 .vk-stat-num {
   display: block;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: clamp(28px, 3vw, 38px);
   font-weight: 600;
   line-height: 1.15;
@@ -1056,7 +1056,7 @@
 
 .vk-section-title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: clamp(30px, 3.8vw, 46px);
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -1212,7 +1212,7 @@
 
 .vk-feature-card h3 {
   margin: 0 0 10px;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: 20px;
   font-weight: 600;
   color: var(--text-primary);
@@ -1309,7 +1309,7 @@
 
 .vk-step-card h3 {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: 22px;
   font-weight: 600;
   color: var(--text-dark);
@@ -1399,7 +1399,7 @@
 .vk-how-wave span:nth-child(3n) { animation-delay: 0.36s; }
 
 .vk-how-phone-body strong {
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: 20px;
   font-weight: 600;
   color: var(--text-primary);
@@ -1438,7 +1438,7 @@
 
 .vk-usecase-card h3 {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: 22px;
   font-weight: 600;
   color: var(--text-primary);
@@ -1530,7 +1530,7 @@
 }
 
 .vk-shield-caption strong {
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: 20px;
   font-weight: 600;
 }
@@ -1581,7 +1581,7 @@
 
 .vk-check-item h3 {
   margin: 0 0 6px;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: 18px;
   font-weight: 600;
   color: var(--text-dark);
@@ -1705,7 +1705,7 @@
 
 .vk-cta-banner h2 {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: clamp(28px, 3.4vw, 40px);
   font-weight: 600;
   line-height: 1.15;
@@ -1841,7 +1841,7 @@
 
 .vk-legal-card h1 {
   margin: 0 0 8px;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: clamp(28px, 3.6vw, 40px);
   font-weight: 600;
   color: var(--text);
@@ -1855,7 +1855,7 @@
 
 .vk-legal-card h2 {
   margin: 28px 0 8px;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: 20px;
   font-weight: 600;
   color: var(--text);
