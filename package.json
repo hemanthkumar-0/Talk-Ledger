@@ -5,6 +5,7 @@
   "type": "module",
   "main": "server/server.js",
   "scripts": {
+    "build": "node scripts/build-vercel.mjs",
     "start": "node server/server.js",
     "dev": "node --watch server/server.js",
     "test": "node scripts/check-i18n.mjs && node --test tests/parser.test.js tests/pnl.test.js tests/voice-fields.test.js",
@@ -37,7 +38,7 @@
     "ws": "^8.18.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "22.x"
   },
   "devDependencies": {
     "prisma": "^6.19.3"

@@ -1,5 +1,3 @@
-import { PrismaClient } from '@prisma/client';
-
 function isUsableDatabaseUrl(raw) {
   const s = String(raw || '').trim();
   if (!s) return false;
@@ -26,15 +24,17 @@ export function getPrismaStatus() {
 }
 
 /**
- * Returns a shared PrismaClient instance (lazily constructed once DATABASE_URL is configured).
+ * Lazily imports @prisma/client and returns a shared PrismaClient instance.
+ * Keeps serverless cold starts fast and avoids crashing if Prisma engines are not generated.
  */
-export function getPrismaClient() {
+export async function getPrismaClient() {
   if (prismaInstance) return prismaInstance;
   if (!isUsableDatabaseUrl(process.env.DATABASE_URL)) {
     throw new Error(
       'DATABASE_URL is not configured with a valid password. Replace [YOUR-PASSWORD] in .env.local first.'
     );
   }
+  const { PrismaClient } = await import('@prisma/client');
   prismaInstance = new PrismaClient();
   return prismaInstance;
 }

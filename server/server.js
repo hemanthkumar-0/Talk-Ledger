@@ -264,13 +264,18 @@ app.get('*', (_req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 
-const server = http.createServer(app);
+const isVercel = Boolean(process.env.VERCEL);
+let server = null;
 
-// WebSocket relay for 16 kHz mono PCM streaming to Gnani Prisma STT
-const wss = new WebSocketServer({ server, path: '/ws/stt' });
-wss.on('connection', (ws) => {
-  attachPrismaRelay(ws);
-});
+if (!isVercel) {
+  server = http.createServer(app);
+
+  // WebSocket relay for 16 kHz mono PCM streaming to Gnani Prisma STT
+  const wss = new WebSocketServer({ server, path: '/ws/stt' });
+  wss.on('connection', (ws) => {
+    attachPrismaRelay(ws);
+  });
+}
 
 function getLocalLanIps() {
   const ips = [];
@@ -286,39 +291,42 @@ function getLocalLanIps() {
   return ips;
 }
 
-server.listen(PORT, HOST, () => {
-  const cfg = getGnaniConfig();
-  const sb = getSupabaseServerStatus();
-  const pgStatus = getPostgresStatus();
-  const lanIps = getLocalLanIps();
-  const modeLabel = cfg.isLive
-    ? 'Gnani Live (Prisma STT + Timbre TTS)'
-    : 'Browser Voice Mode (Web Speech API)';
-  const authLabel = sb.configured
-    ? `Supabase Live (${sb.url})${sb.jwksConfigured ? ' [JWKS]' : ''}`
-    : 'Local Vault Auth';
-  const dbLabel = pgStatus.configured
-    ? `PostgreSQL (${pgStatus.host}:${pgStatus.port}/${pgStatus.database})`
-    : 'On-Device AES-GCM Vault (set SUPABASE_DB_URL for Postgres)';
+if (!isVercel && server) {
+  server.listen(PORT, HOST, () => {
+    const cfg = getGnaniConfig();
+    const sb = getSupabaseServerStatus();
+    const pgStatus = getPostgresStatus();
+    const lanIps = getLocalLanIps();
+    const modeLabel = cfg.isLive
+      ? 'Gnani Live (Prisma STT + Timbre TTS)'
+      : 'Browser Voice Mode (Web Speech API)';
+    const authLabel = sb.configured
+      ? `Supabase Live (${sb.url})${sb.jwksConfigured ? ' [JWKS]' : ''}`
+      : 'Local Vault Auth';
+    const dbLabel = pgStatus.configured
+      ? `PostgreSQL (${pgStatus.host}:${pgStatus.port}/${pgStatus.database})`
+      : 'On-Device AES-GCM Vault (set SUPABASE_DB_URL for Postgres)';
 
-  const lines = [
-    '',
-    '  Voice Khata server ready',
-    `  Web:            http://localhost:${PORT}`,
-    `  App:            http://localhost:${PORT}/app`,
-    ...lanIps.map((ip) => `  Phone / Tablet: http://${ip}:${PORT}`),
-    `  Voice Engine:   ${modeLabel}`,
-    `  Auth Provider:  ${authLabel}`,
-    `  Database:       ${dbLabel}`,
-    '',
-  ];
-  process.stdout.write(`${lines.join('\n')}\n`);
-});
-
-for (const sig of ['SIGINT', 'SIGTERM']) {
-  process.on(sig, () => {
-    Promise.allSettled([closePostgresPool(), disconnectPrisma()]).finally(() => process.exit(0));
+    const lines = [
+      '',
+      '  Voice Khata server ready',
+      `  Web:            http://localhost:${PORT}`,
+      `  App:            http://localhost:${PORT}/app`,
+      ...lanIps.map((ip) => `  Phone / Tablet: http://${ip}:${PORT}`),
+      `  Voice Engine:   ${modeLabel}`,
+      `  Auth Provider:  ${authLabel}`,
+      `  Database:       ${dbLabel}`,
+      '',
+    ];
+    process.stdout.write(`${lines.join('\n')}\n`);
   });
+
+  for (const sig of ['SIGINT', 'SIGTERM']) {
+    process.on(sig, () => {
+      Promise.allSettled([closePostgresPool(), disconnectPrisma()]).finally(() => process.exit(0));
+    });
+  }
 }
 
 export { app, server };
+export default app;
