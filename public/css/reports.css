@@ -1,0 +1,927 @@
+/* ==========================================================================
+   Reports Tab: Dues & Collections Card, Plain-SVG P&L Graph,
+   and Scrolltide #s-lime-metrics Stocks Section
+   ========================================================================== */
+
+.reports-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.reports-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-xs);
+}
+
+.period-selector {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reports-right-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.credit-days-setting {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.days-input {
+  width: 68px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.custom-range-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+}
+
+.custom-range-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.custom-range-row input[type='date'] {
+  height: 38px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Report Cards */
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--sp-4);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.report-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.report-card-head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.report-card-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.net-cash-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+}
+
+.net-cash-badge span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.net-cash-badge strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.net-cash-badge small {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Four Large Dues KPI Tiles */
+.dues-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dues-kpi-tile {
+  padding: 14px;
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dues-kpi-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.dues-kpi-val {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.dues-kpi-tile--overdue .dues-kpi-val,
+.dues-kpi-tile--dr .dues-kpi-val {
+  color: var(--danger);
+}
+
+.dues-kpi-tile--cr .dues-kpi-val {
+  color: var(--success);
+}
+
+.dues-kpi-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+/* Opening + Debit - Credit = Closing Statement Strip */
+.statement-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: var(--r-lg);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+}
+
+.stmt-term {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stmt-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.stmt-term strong {
+  font-size: 15px;
+  color: var(--text);
+}
+
+.stmt-term--closing strong {
+  color: var(--burgundy);
+}
+
+.stmt-op {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* Collection Rate Progress Bar */
+.collection-bar-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.collection-bar-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.collection-track {
+  height: 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface-subtle);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.collection-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--success), var(--lime));
+  border-radius: var(--r-pill);
+  transition: width var(--dur-slow) var(--ease-out);
+}
+
+/* Ageing Buckets */
+.report-subhead-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.report-subhead {
+  margin: 0 0 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.report-subhead-row .report-subhead {
+  margin-bottom: 0;
+}
+
+.report-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ageing-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ageing-bucket {
+  padding: 12px;
+  border-radius: var(--r-md);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ageing-bucket span {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ageing-bucket strong {
+  font-size: 15px;
+  color: var(--text);
+}
+
+.ageing-bucket--warn { border-inline-start: 3px solid var(--accent); }
+.ageing-bucket--med { border-inline-start: 3px solid var(--warning); }
+.ageing-bucket--high { border-inline-start: 3px solid var(--danger); }
+
+/* Top 10 Customers & Advance Lists */
+.dues-customer-list,
+.advance-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dues-customer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.dues-customer-main {
+  flex: 1;
+  min-width: 0;
+  text-align: start;
+}
+
+.dues-customer-name-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--text);
+}
+
+.overdue-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+}
+
+.dues-customer-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 6px;
+}
+
+.dues-customer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.dues-amount {
+  font-size: 15.5px;
+  color: var(--danger);
+}
+
+.remind-btn {
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.remind-btn:hover {
+  border-color: var(--burgundy);
+  color: var(--burgundy);
+}
+
+.advance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+}
+
+.advance-name-btn {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.advance-badge {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.report-empty-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Khata Ledger Table Modal */
+.modal-card--wide {
+  width: min(680px, 100%);
+}
+
+.khata-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.khata-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.khata-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.khata-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.khata-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.khata-table th,
+.khata-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+}
+
+.khata-table th {
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.khata-table .col-dr { color: var(--danger); font-weight: 600; }
+.khata-table .col-cr { color: var(--success); font-weight: 600; }
+.khata-table .col-bal { font-weight: 700; color: var(--text); }
+
+/* Plain-SVG Profit & Loss Graph */
+.pnl-net-badge {
+  padding: 8px 14px;
+  border-radius: var(--r-pill);
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--surface-subtle);
+  color: var(--text);
+}
+
+.pnl-net-badge.is-profit {
+  background: var(--success-bg);
+  color: var(--profit);
+  border: 1px solid var(--success-border);
+}
+
+.pnl-net-badge.is-loss {
+  background: var(--danger-bg);
+  color: var(--loss);
+  border: 1px solid var(--danger-border);
+}
+
+.pnl-legend-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.pnl-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.legend-swatch--profit { background: var(--profit); }
+.legend-swatch--loss {
+  background: repeating-linear-gradient(45deg, var(--loss), var(--loss) 3px, transparent 3px, transparent 6px);
+  border: 1px solid var(--loss);
+}
+
+.legend-line {
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  display: inline-block;
+}
+
+.pnl-chart-shell {
+  position: relative;
+}
+
+.pnl-tooltip {
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-strong);
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.tooltip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.tooltip-grid .is-profit { color: var(--profit); }
+.tooltip-grid .is-loss { color: var(--loss); }
+
+.pnl-scroll-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+
+.pnl-svg {
+  min-width: 100%;
+  height: auto;
+}
+
+.svg-grid-line {
+  stroke: var(--border);
+  stroke-dasharray: 3 4;
+}
+
+.svg-zero-line {
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+}
+
+.svg-axis-label {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.svg-bar-sign {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.svg-bar-sign.is-profit { fill: var(--profit); }
+.svg-bar-sign.is-loss { fill: var(--loss); }
+
+.pnl-bar-group {
+  cursor: pointer;
+  outline: none;
+}
+
+.pnl-bar-group:hover rect,
+.pnl-bar-group:focus-visible rect {
+  filter: brightness(1.08);
+}
+
+.pnl-empty-state {
+  padding: var(--sp-5) var(--sp-3);
+  text-align: center;
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  border: 1px dashed var(--border-strong);
+}
+
+.pnl-empty-state h4 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.pnl-empty-state p {
+  margin: 0 0 16px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.bookkeeping-disclaimer {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ==========================================================================
+   Scrolltide #s-lime-metrics Stocks Section
+   Headline with 2 lime-highlighted words + 3 SVG Chart Cards (Bar, Donut, Area)
+   ========================================================================== */
+
+.lime-stocks-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--sp-4);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.lime-headline-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.lime-headline {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.5vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.lime-highlight {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: var(--lime-highlight-bg);
+  color: var(--lime-highlight-text);
+  font-style: italic;
+}
+
+.lime-valuation-pill {
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-strong);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lime-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.lime-metric-card {
+  padding: 16px;
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lime-card-head h4 {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lime-card-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.lime-svg {
+  width: 100%;
+  height: auto;
+}
+
+.svg-mini-val {
+  fill: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.svg-mini-lbl {
+  fill: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.svg-donut-num {
+  fill: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.lime-donut-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lime-donut-svg {
+  width: 104px;
+  height: 104px;
+  flex-shrink: 0;
+}
+
+.lime-donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.lime-donut-legend .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-inline-end: 5px;
+}
+
+.dot--lime { background: var(--lime); }
+.dot--warn { background: var(--accent); }
+.dot--loss { background: var(--loss); }
+
+/* Stock Inventory Management */
+.stock-inventory-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stock-add-form {
+  display: grid;
+  grid-template-columns: 2fr repeat(3, 1fr) auto;
+  gap: 8px;
+}
+
+.stock-add-form input {
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13.5px;
+}
+
+.stock-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stock-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.stock-row-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.stock-row-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.stock-status-pill {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+}
+
+.stock-status-pill--ok { background: var(--success-bg); color: var(--success); }
+.stock-status-pill--low { background: var(--warning-bg); color: var(--warning); }
+.stock-status-pill--out { background: var(--danger-bg); color: var(--danger); }
+
+.restock-btn {
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Sale/Expense Form Fields */
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group[hidden] {
+  display: none;
+}
+
+.form-group label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.form-group input,
+.form-group select {
+  height: 44px;
+  padding: 0 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+}
+
+@media (max-width: 1024px) {
+  .dues-kpi-grid,
+  .ageing-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .lime-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  .stock-add-form {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .report-card,
+  .lime-stocks-section {
+    padding: var(--sp-3);
+  }
+  .dues-kpi-val {
+    font-size: 18px;
+  }
+  .stock-add-form {
+    grid-template-columns: 1fr;
+  }
+}

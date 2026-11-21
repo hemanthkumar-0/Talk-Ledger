@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Contact — Voice Khata</title>
+  <meta name="description" content="Get in touch with the Voice Khata support team for help, feedback, or language requests." />
+  <meta name="theme-color" content="#FAF8F5" />
+  <script>
+    (function () {
+      try {
+        var mode = localStorage.getItem('talkledger-theme') || 'system';
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var resolved = mode === 'dark' || mode === 'light' ? mode : (prefersDark ? 'dark' : 'light');
+        document.documentElement.dataset.theme = resolved;
+        document.documentElement.dataset.themeMode = mode;
+        document.documentElement.style.colorScheme = resolved;
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/tokens.css" />
+  <link rel="stylesheet" href="/css/lather.css" />
+  <link rel="stylesheet" href="/css/landing.css" />
+</head>
+<body>
+  <header class="vk-header" role="banner">
+    <div class="vk-container vk-header-inner">
+      <a href="/" class="vk-brand" aria-label="Voice Khata Home">
+        <span class="vk-brand-icon" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E6A825" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3" fill="#E6A825" stroke="none"></rect>
+            <path d="M5 10v2a7 7 0 0 0 14 0v-2" stroke="#FAF8F5"></path>
+            <line x1="12" y1="19" x2="12" y2="22" stroke="#FAF8F5"></line>
+          </svg>
+        </span>
+        <span class="vk-brand-name">Voice <span>Khata</span></span>
+      </a>
+      <nav class="vk-nav" aria-label="Main navigation">
+        <a href="/#features">Features</a>
+        <a href="/#how-it-works">How it Works</a>
+        <a href="/#security">Security</a>
+        <a href="/#faq">FAQ</a>
+      </nav>
+      <div class="vk-header-actions">
+        <div class="theme-control-cluster" role="group" aria-label="Switch color theme">
+          <button type="button" class="lather-toggle-btn" id="latherThemeBtn" aria-pressed="false" title="Switch Light / Dark theme">
+            <span class="lather-bubble" aria-hidden="true"><span class="lather-eclipse"></span></span>
+          </button>
+          <div class="theme-mode-group" role="radiogroup" aria-label="Theme mode">
+            <button type="button" role="radio" aria-checked="false" class="theme-mode-btn" data-theme-choice="light">Light</button>
+            <button type="button" role="radio" aria-checked="false" class="theme-mode-btn" data-theme-choice="dark">Dark</button>
+            <button type="button" role="radio" aria-checked="true" class="theme-mode-btn is-active" data-theme-choice="system">System</button>
+          </div>
+        </div>
+        <a href="/app" class="vk-btn-primary">Get Started</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="vk-legal-main">
+    <div class="vk-container">
+      <article class="vk-legal-card">
+        <h1>Contact Support</h1>
+        <p class="vk-legal-meta">Questions, feedback, or regional language suggestions? Write to us below or email <strong>support@voicekhata.app</strong>.</p>
+
+        <div class="vk-contact-status" id="vkContactStatus" hidden role="status" aria-live="polite"></div>
+
+        <form id="vkContactForm" class="vk-contact-form" novalidate>
+          <div class="form-group">
+            <label for="contactName">Your Name</label>
+            <input type="text" id="contactName" autocomplete="name" placeholder="Full name" required />
+          </div>
+          <div class="form-group">
+            <label for="contactEmail">Email Address</label>
+            <input type="email" id="contactEmail" autocomplete="email" placeholder="you@example.com" required />
+          </div>
+          <div class="form-group">
+            <label for="contactMessage">Message</label>
+            <textarea id="contactMessage" placeholder="Tell us how we can help with Voice Khata..." required></textarea>
+          </div>
+          <div>
+            <button type="submit" class="vk-btn-primary vk-btn-lg">Send Message</button>
+          </div>
+        </form>
+      </article>
+    </div>
+  </main>
+
+  <footer class="vk-footer" role="contentinfo">
+    <div class="vk-container">
+      <div class="vk-footer-bottom">
+        <span>&copy; 2026 Voice Khata. All rights reserved.</span>
+        <nav class="vk-footer-links" aria-label="Footer navigation">
+          <a href="/#features">Features</a>
+          <a href="/#security">Security</a>
+          <a href="/#faq">FAQ</a>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/landing.js"></script>
+</body>
+</html>

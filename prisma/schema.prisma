@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model VkProfile {
+  id                String   @id @db.Uuid
+  fullName          String   @default("") @map("full_name")
+  defaultCreditDays Int      @default(30) @map("default_credit_days")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("vk_profiles")
+}
+
+model VkCustomer {
+  userId        String   @map("user_id") @db.Uuid
+  nameKey       String   @map("name_key")
+  name          String
+  optInReminder Boolean  @default(false) @map("opt_in_reminder")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([userId, nameKey])
+  @@map("vk_customers")
+}
+
+model VkEntry {
+  userId            String    @map("user_id") @db.Uuid
+  id                String
+  customerName      String    @map("customer_name")
+  amount            Decimal   @db.Decimal(14, 2)
+  entryType         String    @map("entry_type")
+  dateIso           DateTime  @map("date_iso") @db.Date
+  dueDate           DateTime? @map("due_date") @db.Date
+  dateLabel         String    @default("today") @map("date_label")
+  dateOffset        Int       @default(0) @map("date_offset")
+  sourceClause      String?   @map("source_clause")
+  originalAmount    Decimal?  @map("original_amount") @db.Decimal(14, 2)
+  previousAmount    Decimal?  @map("previous_amount") @db.Decimal(14, 2)
+  correctionHistory Json      @default("[]") @map("correction_history")
+  correctedAt       DateTime? @map("corrected_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([userId, id])
+  @@index([userId, dateIso(sort: Desc)], map: "idx_vk_entries_user_date")
+  @@map("vk_entries")
+}
+
+model VkBusinessRecord {
+  userId    String   @map("user_id") @db.Uuid
+  id        String
+  kind      String
+  dateIso   DateTime @map("date_iso") @db.Date
+  revenue   Decimal  @default(0) @db.Decimal(14, 2)
+  cogs      Decimal  @default(0) @db.Decimal(14, 2)
+  amount    Decimal  @db.Decimal(14, 2)
+  note      String   @default("")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([userId, id])
+  @@index([userId, dateIso(sort: Desc)], map: "idx_vk_business_records_user_date")
+  @@map("vk_business_records")
+}
+
+model VkStock {
+  userId    String   @map("user_id") @db.Uuid
+  id        String
+  name      String
+  qty       Int      @default(0)
+  reorderAt Int      @default(10) @map("reorder_at")
+  costPrice Decimal  @default(0) @map("cost_price") @db.Decimal(14, 2)
+  sellPrice Decimal  @default(0) @map("sell_price") @db.Decimal(14, 2)
+  soldUnits Int      @default(0) @map("sold_units")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([userId, id])
+  @@map("vk_stocks")
+}

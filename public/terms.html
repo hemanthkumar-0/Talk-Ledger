@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Terms of Service — Voice Khata</title>
+  <meta name="description" content="Terms of Service for using Voice Khata, a simple voice-first bookkeeping tool for everyday businesses." />
+  <meta name="theme-color" content="#FAF8F5" />
+  <script>
+    (function () {
+      try {
+        var mode = localStorage.getItem('talkledger-theme') || 'system';
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var resolved = mode === 'dark' || mode === 'light' ? mode : (prefersDark ? 'dark' : 'light');
+        document.documentElement.dataset.theme = resolved;
+        document.documentElement.dataset.themeMode = mode;
+        document.documentElement.style.colorScheme = resolved;
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/tokens.css" />
+  <link rel="stylesheet" href="/css/lather.css" />
+  <link rel="stylesheet" href="/css/landing.css" />
+</head>
+<body>
+  <header class="vk-header" role="banner">
+    <div class="vk-container vk-header-inner">
+      <a href="/" class="vk-brand" aria-label="Voice Khata Home">
+        <span class="vk-brand-icon" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E6A825" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3" fill="#E6A825" stroke="none"></rect>
+            <path d="M5 10v2a7 7 0 0 0 14 0v-2" stroke="#FAF8F5"></path>
+            <line x1="12" y1="19" x2="12" y2="22" stroke="#FAF8F5"></line>
+          </svg>
+        </span>
+        <span class="vk-brand-name">Voice <span>Khata</span></span>
+      </a>
+      <nav class="vk-nav" aria-label="Main navigation">
+        <a href="/#features">Features</a>
+        <a href="/#how-it-works">How it Works</a>
+        <a href="/#security">Security</a>
+        <a href="/#faq">FAQ</a>
+      </nav>
+      <div class="vk-header-actions">
+        <div class="theme-control-cluster" role="group" aria-label="Switch color theme">
+          <button type="button" class="lather-toggle-btn" id="latherThemeBtn" aria-pressed="false" title="Switch Light / Dark theme">
+            <span class="lather-bubble" aria-hidden="true"><span class="lather-eclipse"></span></span>
+          </button>
+          <div class="theme-mode-group" role="radiogroup" aria-label="Theme mode">
+            <button type="button" role="radio" aria-checked="false" class="theme-mode-btn" data-theme-choice="light">Light</button>
+            <button type="button" role="radio" aria-checked="false" class="theme-mode-btn" data-theme-choice="dark">Dark</button>
+            <button type="button" role="radio" aria-checked="true" class="theme-mode-btn is-active" data-theme-choice="system">System</button>
+          </div>
+        </div>
+        <a href="/app" class="vk-btn-primary">Get Started</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="vk-legal-main">
+    <div class="vk-container">
+      <article class="vk-legal-card">
+        <h1>Terms of Service</h1>
+        <p class="vk-legal-meta">Effective Date: January 1, 2026 &middot; Voice Khata</p>
+
+        <h2>1. Use of Service</h2>
+        <p>Voice Khata provides a voice-first personal and small-business credit ledger tool. You are responsible for reviewing every recorded entry, spoken confirmation, and customer balance.</p>
+
+        <h2>2. Bookkeeping Estimate Disclaimer</h2>
+        <p>Dues summaries, ageing buckets, stock valuations, and profit/loss graphs generated in Voice Khata are simple bookkeeping estimates and do not constitute formal tax filings, legal notices, or audited financial statements.</p>
+
+        <h2>3. Local Storage Responsibility</h2>
+        <p>Because Voice Khata stores encrypted data directly on your device, clearing browser storage or using One-Tap Data Delete permanently erases your local records and cannot be reversed.</p>
+
+        <h2>4. Acceptable Use</h2>
+        <p>You agree to use polite reminders only with customer consent and in compliance with applicable local regulations. Voice Khata does not send automated messages on your behalf.</p>
+
+        <h2>5. Contact</h2>
+        <p>Questions about these terms can be sent through our <a href="/contact" style="text-decoration:underline;color:var(--burgundy);">Contact page</a>.</p>
+      </article>
+    </div>
+  </main>
+
+  <footer class="vk-footer" role="contentinfo">
+    <div class="vk-container">
+      <div class="vk-footer-bottom">
+        <span>&copy; 2026 Voice Khata. All rights reserved.</span>
+        <nav class="vk-footer-links" aria-label="Footer navigation">
+          <a href="/#features">Features</a>
+          <a href="/#security">Security</a>
+          <a href="/#faq">FAQ</a>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/landing.js"></script>
+</body>
+</html>

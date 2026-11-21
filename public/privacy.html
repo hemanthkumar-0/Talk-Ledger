@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Privacy Policy — Voice Khata</title>
+  <meta name="description" content="How Voice Khata protects your shop ledger with on-device AES-GCM encryption, private voice handling, and one-tap permanent deletion." />
+  <meta name="theme-color" content="#FAF8F5" />
+  <script>
+    (function () {
+      try {
+        var mode = localStorage.getItem('talkledger-theme') || 'system';
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var resolved = mode === 'dark' || mode === 'light' ? mode : (prefersDark ? 'dark' : 'light');
+        document.documentElement.dataset.theme = resolved;
+        document.documentElement.dataset.themeMode = mode;
+        document.documentElement.style.colorScheme = resolved;
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/tokens.css" />
+  <link rel="stylesheet" href="/css/lather.css" />
+  <link rel="stylesheet" href="/css/landing.css" />
+</head>
+<body>
+  <header class="vk-header" role="banner">
+    <div class="vk-container vk-header-inner">
+      <a href="/" class="vk-brand" aria-label="Voice Khata Home">
+        <span class="vk-brand-icon" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E6A825" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3" fill="#E6A825" stroke="none"></rect>
+            <path d="M5 10v2a7 7 0 0 0 14 0v-2" stroke="#FAF8F5"></path>
+            <line x1="12" y1="19" x2="12" y2="22" stroke="#FAF8F5"></line>
+          </svg>
+        </span>
+        <span class="vk-brand-name">Voice <span>Khata</span></span>
+      </a>
+      <nav class="vk-nav" aria-label="Main navigation">
+        <a href="/#features">Features</a>
+        <a href="/#how-it-works">How it Works</a>
+        <a href="/#security">Security</a>
+        <a href="/#faq">FAQ</a>
+      </nav>
+      <div class="vk-header-actions">
+        <div class="theme-control-cluster" role="group" aria-label="Switch color theme">
+          <button type="button" class="lather-toggle-btn" id="latherThemeBtn" aria-pressed="false" title="Switch Light / Dark theme">
+            <span class="lather-bubble" aria-hidden="true"><span class="lather-eclipse"></span></span>
+          </button>
+          <div class="theme-mode-group" role="radiogroup" aria-label="Theme mode">
+            <button type="button" role="radio" aria-checked="false" class="theme-mode-btn" data-theme-choice="light">Light</button>
+            <button type="button" role="radio" aria-checked="false" class="theme-mode-btn" data-theme-choice="dark">Dark</button>
+            <button type="button" role="radio" aria-checked="true" class="theme-mode-btn is-active" data-theme-choice="system">System</button>
+          </div>
+        </div>
+        <a href="/app" class="vk-btn-primary">Get Started</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="vk-legal-main">
+    <div class="vk-container">
+      <article class="vk-legal-card">
+        <h1>Privacy Policy</h1>
+        <p class="vk-legal-meta">Effective Date: January 1, 2026 &middot; Voice Khata</p>
+
+        <p>Voice Khata is built so your shop's financial records stay private and under your control on your own device.</p>
+
+        <h2>1. Data Stored on Your Device</h2>
+        <p>Your customer list, khata entries, sales, expenses, and stock counts are stored locally inside your browser's IndexedDB vault encrypted with AES-GCM 256-bit encryption. The encryption key is generated on your device and marked non-extractable.</p>
+
+        <h2>2. Voice Audio &amp; Microphone Access</h2>
+        <p>We only activate your microphone when you press or hold a microphone button. Audio stays strictly in memory while being transcribed and is immediately discarded after the response. Voice Khata never stores audio recordings or raw sign-in transcripts.</p>
+
+        <h2>3. Passwords &amp; Security Controls</h2>
+        <p>Voice entry is never available on password, confirm-password, login code, or PIN fields. Those fields are typed only. API keys used for voice transcription or synthesis remain exclusively on the server proxy and are never sent to your browser.</p>
+
+        <h2>4. Reminders &amp; Sharing</h2>
+        <p>Payment reminder opt-in toggles are disabled by default. When you tap Remind, Voice Khata opens your device's share sheet with a pre-filled polite message that you review and choose whether to send—nothing is ever sent automatically.</p>
+
+        <h2>5. Deleting Your Data</h2>
+        <p>You can permanently delete all local ledger data and destroy your device encryption key at any time using the One-Tap Data Delete option inside Privacy &amp; Vault in the app.</p>
+
+        <h2>6. Contact</h2>
+        <p>If you have questions about privacy, please reach out via our <a href="/contact" style="text-decoration:underline;color:var(--burgundy);">Contact page</a>.</p>
+      </article>
+    </div>
+  </main>
+
+  <footer class="vk-footer" role="contentinfo">
+    <div class="vk-container">
+      <div class="vk-footer-bottom">
+        <span>&copy; 2026 Voice Khata. All rights reserved.</span>
+        <nav class="vk-footer-links" aria-label="Footer navigation">
+          <a href="/#features">Features</a>
+          <a href="/#security">Security</a>
+          <a href="/#faq">FAQ</a>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms</a>
+          <a href="/contact">Contact</a>
+        </nav>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/landing.js"></script>
+</body>
+</html>

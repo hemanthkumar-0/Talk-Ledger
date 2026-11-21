@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Voice Khata — Credit Book</title>
+  <meta name="description" content="Record customer credit, payments, dues, profit, and stock by voice. Encrypted on your device and works offline." />
+  <meta property="og:title" content="Voice Khata — Credit Book" />
+  <meta property="og:description" content="Speak. Your khata updates itself. Encrypted local credit ledger PWA." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#FAF8F5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <script>
+    (function () {
+      try {
+        var mode = localStorage.getItem('talkledger-theme') || 'system';
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var resolved = mode === 'dark' || mode === 'light' ? mode : (prefersDark ? 'dark' : 'light');
+        document.documentElement.dataset.theme = resolved;
+        document.documentElement.dataset.themeMode = mode;
+        document.documentElement.style.colorScheme = resolved;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', resolved === 'dark' ? '#0B1120' : '#FAF8F5');
+        var lang = localStorage.getItem('talkledger-lang') || 'en';
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === 'ur' ? 'rtl' : 'ltr';
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/css/tokens.css" />
+  <link rel="stylesheet" href="/css/lather.css" />
+  <link rel="stylesheet" href="/css/landing.css" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="stylesheet" href="/css/reports.css" />
+  <link rel="stylesheet" href="/css/auth.css" />
+</head>
+<body>
+  <canvas class="signal-ambient-canvas" id="signalAmbientCanvas" aria-hidden="true"></canvas>
+
+  <!-- App Sticky Header -->
+  <header class="site-header" role="banner">
+    <div class="header-inner">
+      <a href="/" class="vk-brand" aria-label="Voice Khata Home">
+        <span class="vk-brand-icon" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E6A825" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3" fill="#E6A825" stroke="none"></rect>
+            <path d="M5 10v2a7 7 0 0 0 14 0v-2" stroke="#FAF8F5"></path>
+            <line x1="12" y1="19" x2="12" y2="22" stroke="#FAF8F5"></line>
+          </svg>
+        </span>
+        <span class="vk-brand-name">Voice <span>Khata</span></span>
+      </a>
+
+      <nav class="header-nav" aria-label="Ledger navigation">
+        <button type="button" class="header-nav-link is-active" data-view="book" data-i18n="nav.book">Today's Book</button>
+        <button type="button" class="header-nav-link" data-view="reports" data-i18n="nav.reports">Reports &amp; Stocks</button>
+        <button type="button" class="header-nav-link" data-view="customers" data-i18n="nav.customers">Customers</button>
+        <button type="button" class="header-nav-link" data-view="vault" data-i18n="nav.vault">Privacy &amp; Vault</button>
+      </nav>
+
+      <div class="header-actions">
+        <label for="headerLangSelect" class="sr-only" data-i18n="lang.label">Language</label>
+        <select id="headerLangSelect" class="lang-select" aria-label="Language">
+          <option value="en">EN</option>
+          <option value="hi">हिन्दी</option>
+          <option value="kn">ಕನ್ನಡ</option>
+          <option value="ta">தமிழ்</option>
+          <option value="ur">اردو RTL</option>
+        </select>
+
+        <div class="theme-control-cluster" role="group" data-i18n-aria="theme.toggleAria" aria-label="Switch color theme">
+          <button type="button" class="lather-toggle-btn" id="latherThemeBtn" aria-pressed="false" data-i18n-aria="theme.toggleAria" title="Switch Light / Dark theme">
+            <span class="lather-bubble" aria-hidden="true"><span class="lather-eclipse"></span></span>
+          </button>
+          <div class="theme-mode-group" role="radiogroup" aria-label="Theme mode">
+            <button type="button" role="radio" aria-checked="false" class="theme-mode-btn" data-theme-choice="light" data-i18n="theme.light">Light</button>
+            <button type="button" role="radio" aria-checked="false" class="theme-mode-btn" data-theme-choice="dark" data-i18n="theme.dark">Dark</button>
+            <button type="button" role="radio" aria-checked="true" class="theme-mode-btn is-active" data-theme-choice="system" data-i18n="theme.system">System</button>
+          </div>
+        </div>
+
+        <div class="voice-mode-badge" id="voiceModeBadge" role="status" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="voiceModeText" data-i18n="voice.browserMode">Browser Voice Mode</span>
+        </div>
+
+        <button type="button" class="header-icon-btn" id="openAuthBtn" data-i18n-aria="nav.auth" title="Account">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </button>
+
+        <button type="button" class="header-icon-btn header-desktop-only" id="muteToggleBtn" aria-label="Toggle spoken read-back" title="Toggle spoken read-back">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="muteIcon">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Interactive Voice Khata Workspace -->
+  <main class="workspace-section" id="workspace">
+    <div class="workspace-grid">
+      <!-- LEFT RAIL (Desktop >= 1200px) -->
+      <aside class="left-rail" aria-label="Workspace Sections">
+        <nav class="rail-nav-card" aria-label="Ledger Views">
+          <button type="button" class="rail-nav-item is-active" data-view="book">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
+            </svg>
+            <span data-i18n="nav.book">Today's Book</span>
+            <span class="rail-nav-count tabular" id="navEntryCount">0</span>
+          </button>
+
+          <button type="button" class="rail-nav-item" data-view="reports">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            <span data-i18n="nav.reports">Reports &amp; Stocks</span>
+          </button>
+
+          <button type="button" class="rail-nav-item" data-view="customers">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span data-i18n="nav.customers">Customers</span>
+            <span class="rail-nav-count tabular" id="navCustomerCount">0</span>
+          </button>
+
+          <button type="button" class="rail-nav-item" data-view="vault">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <span data-i18n="nav.vault">Privacy &amp; Vault</span>
+          </button>
+
+          <button type="button" class="rail-nav-item" id="railAuthBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span id="railAccountLabel" data-i18n="nav.auth">Account</span>
+          </button>
+        </nav>
+
+        <div class="vault-trust-card">
+          <div class="vault-trust-head">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <span id="vaultBadgeLabel" data-i18n="voice.encryptedOnDevice">Encrypted on device</span>
+          </div>
+          <p class="vault-trust-copy">AES-GCM 256-bit local vault. Your customer balances stay private on this device.</p>
+        </div>
+
+        <div class="rail-footer">
+          <strong>Voice Khata</strong> &middot; &copy; 2026<br />
+          <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="/contact">Contact</a>
+        </div>
+      </aside>
+
+      <!-- CENTER STAGE -->
+      <div class="center-stage">
+        <!-- Mobile Compact KPI Strip -->
+        <div class="mobile-kpi-strip" aria-label="Daily Totals">
+          <div class="mobile-kpi-tile mobile-kpi-tile--credit">
+            <span data-i18n="reports.terms.debit">Debit (Dr)</span>
+            <strong class="tabular" id="mobileCreditVal">₹0</strong>
+          </div>
+          <div class="mobile-kpi-tile mobile-kpi-tile--paid">
+            <span data-i18n="reports.terms.credit">Credit (Cr)</span>
+            <strong class="tabular" id="mobilePaidVal">₹0</strong>
+          </div>
+        </div>
+
+        <!-- VOICE CONSOLE -->
+        <div class="tablet-left-col">
+          <section class="voice-console-card" id="voiceConsoleCard" aria-label="Voice Capture Console">
+            <div class="voice-console-top">
+              <div class="voice-console-meta">
+                <div class="voice-state-pill">
+                  <span class="voice-state-dot" aria-hidden="true"></span>
+                  <span id="voiceStateText" data-i18n="voice.ready">Ready · Hold Mic or Spacebar</span>
+                </div>
+                <div class="voice-toggles-row">
+                  <button type="button" class="console-chip-toggle is-on" id="noiseFilterBtn" aria-pressed="true" title="Shop background noise filter">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M2 10v3"></path><path d="M6 6v11"></path><path d="M10 3v18"></path><path d="M14 8v7"></path><path d="M18 5v13"></path><path d="M22 10v3"></path>
+                    </svg>
+                    <span data-i18n="voice.noiseFilter">Noise Filter</span>
+                  </button>
+                  <button type="button" class="console-chip-toggle" id="handsFreeBtn" aria-pressed="false" title="Tap-to-toggle hands-free listening">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    </svg>
+                    <span data-i18n="voice.handsFree">Hands-Free</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="waveform-stage">
+                <canvas class="waveform-canvas" id="mainWaveCanvas" data-theme="dark" aria-label="Live audio waveform"></canvas>
+              </div>
+            </div>
+
+            <div class="voice-console-body">
+              <div class="transcript-feed">
+                <div class="transcript-bubble">
+                  <div class="transcript-label">
+                    <span>Voice Entry</span>
+                  </div>
+                  <p class="transcript-text is-placeholder" id="liveTranscriptText">Hold the mic button or Spacebar and say a customer name and amount.</p>
+                </div>
+
+                <div class="reply-banner" id="replyBanner" role="status" aria-live="polite">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                    <path d="m9 12 2 2 4-4"></path>
+                  </svg>
+                  <div class="reply-banner-content">
+                    <div class="reply-banner-tag" id="replyTag">Voice Assistant</div>
+                    <p class="reply-banner-text" id="replyText">Hello, I am an AI assistant for your credit book.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="disambiguation-card" id="disambiguationCard" hidden role="region" aria-label="Customer Disambiguation">
+                <div class="disambiguation-head">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                  <span>Confirm Customer Before Saving</span>
+                </div>
+                <p class="disambiguation-prompt" id="disambiguationPrompt"></p>
+                <div class="disambiguation-choices" id="disambiguationChoices"></div>
+              </div>
+
+              <div class="voice-controls-row">
+                <button type="button" class="hold-talk-btn" id="holdTalkBtn" aria-label="Hold to Talk">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="22"></line>
+                  </svg>
+                  <span id="holdTalkLabel" data-i18n="voice.holdToTalk">Hold to Talk</span>
+                  <span class="kbd-hint">Space</span>
+                </button>
+
+                <form class="sim-form" id="simVoiceForm" autocomplete="off">
+                  <label for="simVoiceInput" class="sr-only">Type a khata entry</label>
+                  <input
+                    type="text"
+                    id="simVoiceInput"
+                    class="sim-input"
+                    data-i18n-placeholder="voice.typePlaceholder"
+                    placeholder="Type an entry (e.g., Ramesh 340 credit)..."
+                  />
+                  <button type="submit" class="sim-submit-btn" data-i18n="voice.record">Record</button>
+                </form>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- WORKSPACE VIEWS -->
+        <div class="tablet-right-col">
+          <div class="tablet-tabs-bar" role="tablist" aria-label="Workspace Tabs">
+            <button type="button" class="tablet-tab-btn is-active" data-view="book" role="tab" aria-selected="true" data-i18n="nav.book">Book</button>
+            <button type="button" class="tablet-tab-btn" data-view="reports" role="tab" aria-selected="false" data-i18n="nav.reports">Reports</button>
+            <button type="button" class="tablet-tab-btn" data-view="customers" role="tab" aria-selected="false" data-i18n="nav.customers">Customers</button>
+            <button type="button" class="tablet-tab-btn" data-view="vault" role="tab" aria-selected="false" data-i18n="nav.vault">Vault</button>
+          </div>
+
+          <!-- VIEW 1: TODAY'S CREDIT BOOK -->
+          <section class="panel-card" id="panelBook" aria-label="Today's Credit Book">
+            <div class="panel-header">
+              <div class="panel-title-group">
+                <h2 data-i18n="nav.book">Today's Book</h2>
+                <p class="panel-subtitle">Voice-recorded credit and payment ledger</p>
+              </div>
+              <button type="button" class="btn-secondary" id="todayTotalQueryBtn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+                <span>Speak Today's Total</span>
+              </button>
+            </div>
+
+            <div class="ledger-toolbar">
+              <div class="search-box">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <label for="ledgerSearchInput" class="sr-only">Filter entries by customer name</label>
+                <input type="search" id="ledgerSearchInput" class="search-input" placeholder="Search customer..." />
+              </div>
+
+              <div class="filter-pills" role="group" aria-label="Filter ledger entries">
+                <button type="button" class="filter-pill is-active" data-filter="all">All</button>
+                <button type="button" class="filter-pill" data-filter="credit">Credit</button>
+                <button type="button" class="filter-pill" data-filter="paid">Paid</button>
+                <button type="button" class="filter-pill" data-filter="today">Today</button>
+              </div>
+            </div>
+
+            <ul class="ledger-list" id="ledgerFeedList" aria-live="polite"></ul>
+          </section>
+
+          <!-- VIEW 2: REPORTS & STOCKS -->
+          <section class="panel-card panel-card--transparent" id="panelReports" hidden aria-label="Reports and Stocks">
+            <div class="reports-root" id="reportsRoot"></div>
+          </section>
+
+          <!-- VIEW 3: CUSTOMERS -->
+          <section class="panel-card" id="panelCustomers" hidden aria-label="Customer Accounts">
+            <div class="panel-header">
+              <div class="panel-title-group">
+                <h2 data-i18n="nav.customers">Customers</h2>
+                <p class="panel-subtitle">Net balances and opt-in polite payment reminders</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="customer-card-list" id="customersDetailList"></div>
+            </div>
+          </section>
+
+          <!-- VIEW 4: PRIVACY & VAULT -->
+          <section class="panel-card" id="panelVault" hidden aria-label="Privacy and Encrypted Vault">
+            <div class="panel-header">
+              <div class="panel-title-group">
+                <h2 data-i18n="nav.vault">Privacy &amp; Vault</h2>
+                <p class="panel-subtitle">On-device AES-GCM 256-bit encryption and data controls</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="rai-grid">
+                <div class="rai-card">
+                  <h4>Encrypted Local Vault</h4>
+                  <p>Your ledger is encrypted at rest inside IndexedDB with a non-extractable 256-bit key (<span id="vaultAlgoVal">AES-GCM 256-bit</span>).</p>
+                </div>
+                <div class="rai-card">
+                  <h4>Deterministic Accounting</h4>
+                  <p>Spoken amounts, dates, and corrections are handled by deterministic rules on your device without generative guesswork.</p>
+                </div>
+                <div class="rai-card">
+                  <h4>Spoken Confirmation</h4>
+                  <p>Every recorded or corrected amount is read back aloud in one short sentence so mistakes are caught immediately.</p>
+                </div>
+                <div class="rai-card">
+                  <h4>Opt-In Polite Reminders</h4>
+                  <p>Customer payment reminders stay disabled by default and never send automatically without your action.</p>
+                </div>
+              </div>
+
+              <div class="vault-actions-row">
+                <button type="button" class="btn-danger" id="openWipeModalBtn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                  <span>Delete All Local Data</span>
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- RIGHT RAIL -->
+      <aside class="right-rail" aria-label="Account Summary">
+        <section class="kpi-card" aria-label="Active Khata Totals">
+          <div class="kpi-head">
+            <span class="kpi-eyebrow">Active Khata</span>
+            <span class="kpi-date-pill tabular" id="kpiDateLabel">Today</span>
+          </div>
+          <div class="kpi-pair">
+            <div class="kpi-box">
+              <div class="kpi-label" data-i18n="reports.terms.debit">Debit (Dr)</div>
+              <div class="kpi-value kpi-value--credit tabular" id="kpiCreditGiven">₹0</div>
+            </div>
+            <div class="kpi-box">
+              <div class="kpi-label" data-i18n="reports.terms.credit">Credit (Cr)</div>
+              <div class="kpi-value kpi-value--paid tabular" id="kpiReceived">₹0</div>
+            </div>
+          </div>
+          <div class="kpi-bar-wrap">
+            <div class="kpi-bar-track" aria-hidden="true">
+              <div class="kpi-bar-credit" id="kpiCreditBar" style="width: 50%"></div>
+              <div class="kpi-bar-paid" id="kpiPaidBar" style="width: 50%"></div>
+            </div>
+            <div class="kpi-net-row">
+              <span>Net outstanding</span>
+              <strong class="tabular" id="kpiNetVal">₹0</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="side-card" aria-label="Customer Balances Summary">
+          <div class="side-card-head">
+            <h3 class="side-card-title" data-i18n="nav.customers">Customers</h3>
+            <button type="button" class="side-card-action" id="viewAllCustomersBtn">Manage</button>
+          </div>
+          <ul class="balance-list" id="sideBalancesList"></ul>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Mobile Fixed Ergonomic Bottom-Docked Hold-to-Talk Bar (< 768px) -->
+  <div class="mobile-mic-dock" role="region" aria-label="Mobile Voice Controls">
+    <button type="button" class="dock-side-btn" id="mobileHandsFreeBtn" aria-label="Toggle Hands-Free Mode" aria-pressed="false" title="Hands-Free">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+      </svg>
+    </button>
+
+    <button type="button" class="mobile-hold-btn" id="mobileHoldTalkBtn" aria-label="Hold to Talk">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+        <line x1="12" y1="19" x2="12" y2="22"></line>
+      </svg>
+      <span id="mobileHoldLabel" data-i18n="voice.holdToTalk">Hold to Talk</span>
+    </button>
+
+    <button type="button" class="dock-side-btn" id="mobileFocusTypeBtn" aria-label="Type an entry" title="Type entry">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+        <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Customer Khata Ledger Table Modal -->
+  <div class="modal-backdrop" id="khataModalBackdrop" hidden role="dialog" aria-modal="true" aria-label="Customer Khata Ledger">
+    <div class="modal-card modal-card--wide">
+      <div id="khataModalContent"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-primary" id="closeKhataModalBtn" data-i18n="reports.dues.close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Cash Sale / Shop Expense / Debit Entry Modal -->
+  <div class="modal-backdrop" id="saleModalBackdrop" hidden role="dialog" aria-modal="true" aria-labelledby="saleModalTitle">
+    <div class="modal-card">
+      <h3 id="saleModalTitle" data-i18n="reports.pnl.modalTitle">Record Sale, Expense or Debit</h3>
+      <form id="saleEntryForm" class="form-stack">
+        <div class="form-group">
+          <label for="saleKindSelect" data-i18n="reports.pnl.entryKind">Entry type</label>
+          <select id="saleKindSelect">
+            <option value="sale" data-i18n="reports.pnl.kindSale">Cash Sale</option>
+            <option value="expense" data-i18n="reports.pnl.kindExpense">Shop Expense</option>
+            <option value="debit" data-i18n="reports.pnl.kindDebit">Customer Debit (Dr)</option>
+          </select>
+        </div>
+        <div class="form-group" id="saleCustomerGroup" hidden>
+          <label for="saleCustomerInput" data-i18n="reports.pnl.customerName">Customer name</label>
+          <input type="text" id="saleCustomerInput" placeholder="Customer name" />
+        </div>
+        <div class="form-group">
+          <label for="saleAmountInput" data-i18n="reports.pnl.amount">Amount (₹)</label>
+          <input type="number" id="saleAmountInput" min="0.01" step="0.01" required />
+        </div>
+        <div class="form-group" id="saleCogsGroup">
+          <label for="saleCogsInput" data-i18n="reports.pnl.cogsAmount">Cost / COGS (₹)</label>
+          <input type="number" id="saleCogsInput" min="0" step="0.01" value="0" />
+        </div>
+        <div class="form-group">
+          <label for="saleDateInput" data-i18n="reports.pnl.date">Date</label>
+          <input type="date" id="saleDateInput" required />
+        </div>
+        <div class="form-group" id="saleDueDateGroup" hidden>
+          <label for="saleDueDateInput" data-i18n="reports.pnl.dueDate">Due date (optional)</label>
+          <input type="date" id="saleDueDateInput" />
+        </div>
+        <div class="form-group">
+          <label for="saleNoteInput" data-i18n="reports.pnl.note">Note</label>
+          <input type="text" id="saleNoteInput" placeholder="Optional note..." />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="cancelSaleModalBtn" data-i18n="reports.pnl.cancel">Cancel</button>
+          <button type="submit" class="btn-primary" data-i18n="reports.pnl.saveEntry">Save entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- One-Tap Data Delete Confirmation Modal -->
+  <div class="modal-backdrop" id="wipeModalBackdrop" hidden role="dialog" aria-modal="true" aria-labelledby="wipeModalTitle">
+    <div class="modal-card">
+      <h3 id="wipeModalTitle">Permanently Delete Local Vault?</h3>
+      <p>This permanently deletes all customer balances, ledger entries, reports, stocks, and destroys the 256-bit AES-GCM encryption key stored on this device. This action cannot be undone.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="cancelWipeBtn">Cancel</button>
+        <button type="button" class="btn-danger" id="confirmWipeBtn">Delete Everything</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3D Animated Voice + Typing Auth Screen Overlay -->
+  <div class="auth-overlay" id="authOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="authModalTitle"></div>
+
+  <!-- Toast Status Pill -->
+  <div class="toast-container" aria-live="polite" aria-atomic="true">
+    <div class="toast-pill" id="toastPill"></div>
+  </div>
+
+  <script src="/vendor/supabase.js" defer></script>
+  <script type="module" src="/src/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "name": "voice-khata",
+  "version": "1.0.0",
+  "description": "Voice Khata — Speak. Your khata updates itself. Voice-first encrypted credit ledger PWA for everyday Indian businesses.",
+  "type": "module",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js",
+    "test": "node scripts/check-i18n.mjs && node --test tests/parser.test.js tests/pnl.test.js tests/voice-fields.test.js",
+    "test:i18n": "node scripts/check-i18n.mjs",
+    "test:pnl": "node --test tests/pnl.test.js",
+    "prisma:validate": "node --env-file-if-exists=.env.local ./node_modules/prisma/build/index.js validate",
+    "prisma:generate": "node --env-file-if-exists=.env.local ./node_modules/prisma/build/index.js generate",
+    "prisma:push": "node --env-file-if-exists=.env.local ./node_modules/prisma/build/index.js db push",
+    "prisma:migrate": "node --env-file-if-exists=.env.local ./node_modules/prisma/build/index.js migrate dev",
+    "prisma:studio": "node --env-file-if-exists=.env.local ./node_modules/prisma/build/index.js studio"
+  },
+  "keywords": [
+    "voice",
+    "khata",
+    "ledger",
+    "pwa",
+    "fintech",
+    "india",
+    "web-audio",
+    "web-crypto"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "@supabase/server": "^1.9.2",
+    "@supabase/supabase-js": "^2.119.2",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.23.1",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.3"
+  }
+}
